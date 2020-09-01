@@ -1,14 +1,15 @@
 class Templator:
     def genBird(self,latency):
-        template = '''
-log syslog all;
+        template = '''log syslog all;
 router id '''+latency["ip"]+''';
+
 protocol device {
+    scan time 10;
 }
 
 protocol direct {
-	ipv4;
-	interface "lo";
+    interface "lo";
+    interface "pipe*";
 }
 
 protocol kernel {
@@ -30,11 +31,14 @@ ipv4 {
                 export where source ~ [ RTS_DEVICE, RTS_STATIC ];
         };
 	area 0 { '''
-        for target,latency in latency["data"].items():
+        for target,data in latency["data"].items():
             template += '''
-                interface "'''+target+'''" {
-                        type ptp;
-                        cost '''+latency+''';
+                interface "pipe'''+target+'''" {
+                        type ptmp;
+                        neighbors {
+                        '''+data['ip']+''';
+                        };
+                        cost '''+data['ms']+''';
                 };
             '''
         template += """

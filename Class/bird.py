@@ -20,6 +20,7 @@ class Bird:
     def prepare(self):
         print("Preparing")
         for server in targets:
+            print("Stopping bird on",server)
             self.cmd(server,'service bird stop',False)
 
     def ping(self,server,ip):
@@ -38,7 +39,9 @@ class Bird:
                 ip = link[1]+str(int(link[2])-1)
             latency = self.ping(server,ip)
             result["ip"] = link[1]+link[2]
-            result["data"][link[0]] = latency
+            result["data"][link[0]] = {}
+            result["data"][link[0]]['ms'] = latency
+            result["data"][link[0]]['ip'] = ip
         return result
 
     def run(self):
