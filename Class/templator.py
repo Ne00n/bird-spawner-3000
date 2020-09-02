@@ -12,6 +12,11 @@ protocol direct {
     interface "pipe*";
 }
 
+protocol direct {
+    ipv4;
+    interface "lo", "pipe*";
+}
+
 protocol kernel {
 	ipv4 {
 	      export filter {
