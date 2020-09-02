@@ -26,6 +26,8 @@ class Bird:
     def ping(self,server,ip):
         result = self.cmd(server,"ping -c 5 "+ip,True)
         latency = re.findall("mdev =.([0-9]+)",result)
+        if latency[0] == "0":
+            latency[0] = 1
         return latency[0]
 
     def resolve(self,ip,range,netmask):
