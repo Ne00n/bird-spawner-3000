@@ -8,11 +8,6 @@ protocol device {
 }
 
 protocol direct {
-    interface "lo";
-    interface "pipe*";
-}
-
-protocol direct {
     ipv4;
     interface "lo", "pipe*";
 }
