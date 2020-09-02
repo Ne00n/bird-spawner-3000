@@ -1,4 +1,4 @@
-import subprocess, json, re
+import subprocess, netaddr, json, re
 from Class.templator import Templator
 
 targets = []
@@ -28,15 +28,25 @@ class Bird:
         latency = re.findall("mdev =.([0-9]+)",result)
         return latency[0]
 
+    def resolve(self,ip,range,netmask):
+        rangeDecimal = int(netaddr.IPAddress(range))
+        ipDecimal = int(netaddr.IPAddress(ip))
+        wildcardDecimal = pow( 2, ( 32 - int(netmask) ) ) - 1
+        netmaskDecimal = ~ wildcardDecimal
+        return ( ( ipDecimal & netmaskDecimal ) == ( rangeDecimal & netmaskDecimal ) );
+
     def getLatency(self,server,links):
         result = {}
         result["data"] = {}
         for link in links:
-            print("Getting Latency from",server,"to",link[0])
-            if link[3] == "31":
+            origin = link[1]+link[2]
+            #Client or Server roll the dice or rather not, so we ping the correct ip
+            target = self.resolve(link[1]+str(int(link[2])+1),origin,31)
+            if target == True:
                 ip = link[1]+str(int(link[2])+1)
             else:
                 ip = link[1]+str(int(link[2])-1)
+            print("Getting Latency from",server+" ("+origin+")","to",link[0]+" ("+ip+")")
             latency = self.ping(server,ip)
             result["ip"] = link[1]+link[2]
             result["data"][link[0]] = {}
