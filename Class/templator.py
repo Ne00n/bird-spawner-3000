@@ -38,7 +38,7 @@ ipv4 {
                         neighbors {
                         '''+data['ip']+''';
                         };
-                        cost '''+data['ms']+''';
+                        cost '''+str(data['ms'])+''';
                 };
             '''
         template += """
