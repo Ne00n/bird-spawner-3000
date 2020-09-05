@@ -1,7 +1,7 @@
 # bird-spawner-3000
 
 Invasion of the Birds Expansion for pipe-builder-3000: https://github.com/Ne00n/pipe-builder-3000/ </br>
-Configures bird2 on all nodes.
+Configures bird2 with OSPF on all nodes, based on measured latency.
 
 **Dependencies**<br />
 pip3 install netaddr<br />
