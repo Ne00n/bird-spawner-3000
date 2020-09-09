@@ -5,7 +5,7 @@ Configures bird2 with OSPF on all nodes, for the lowest latency between the serv
 
 **Dependencies**<br />
 pip3 install netaddr<br />
-apt-get install bird2
+apt-get install bird2 & fping
 
 Getting bird2: https://packages.sury.org/bird/README.txt
 

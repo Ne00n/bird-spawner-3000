@@ -1,4 +1,4 @@
-import subprocess, netaddr, json, re
+import subprocess, netaddr, time, json, re
 from Class.templator import Templator
 
 targets = []
@@ -10,22 +10,19 @@ class Bird:
         with open('hosts.json') as handle:
             targets = json.loads(handle.read())
 
-    def cmd(self,server,command,interactive):
-        cmd = ['ssh','root@'+server,command]
+    def cmd(self,server,command,interactive=False,list=False):
+        if list == True:
+            cmd = command
+        else:
+            cmd = ['ssh','root@'+server,command]
         if interactive == True:
             return subprocess.check_output(cmd).decode("utf-8")
         else:
             subprocess.run(cmd)
 
     def prepare(self,server):
-        print(server,"stopping bird")
-        self.cmd(server,'service bird stop',False)
-
-    def ping(self,server,ip):
-        result = self.cmd(server,"ping -c 5 "+ip,True)
-        latency = re.findall("mdev =.([0-9.]+)",result)
-        latency = int(float(latency[0]) * 100);
-        return latency
+        print(server,"Stopping bird")
+        self.cmd(server,'service bird stop')
 
     def resolve(self,ip,range,netmask):
         rangeDecimal = int(netaddr.IPAddress(range))
@@ -34,24 +31,46 @@ class Bird:
         netmaskDecimal = ~ wildcardDecimal
         return ( ( ipDecimal & netmaskDecimal ) == ( rangeDecimal & netmaskDecimal ) );
 
-    def getLatency(self,server,links):
+    def genTargets(self,links):
         result = {}
-        result["data"] = {}
         for link in links:
-            origin = link[1]+link[2]
+            nic,ip,lastByte = link[0],link[1],link[2]
+            origin = ip+lastByte
             #Client or Server roll the dice or rather not, so we ping the correct ip
-            target = self.resolve(link[1]+str(int(link[2])+1),origin,31)
+            target = self.resolve(ip+str(int(lastByte)+1),origin,31)
             if target == True:
-                ip = link[1]+str(int(link[2])+1)
+                targetIP = ip+str(int(lastByte)+1)
             else:
-                ip = link[1]+str(int(link[2])-1)
-            print("Getting Latency from",server+" ("+origin+")","to",link[0]+" ("+ip+")")
-            latency = self.ping(server,ip)
-            result["ip"] = link[1]+link[2]
-            result["data"][link[0]] = {}
-            result["data"][link[0]]['ms'] = latency
-            result["data"][link[0]]['ip'] = ip
+                targetIP = ip+str(int(lastByte)-1)
+            result[nic] = {}
+            result[nic]["target"] = targetIP
+            result[nic]["origin"] = origin
         return result
+
+    def getLatency(self,server,targets):
+        print(server,"Getting latency from all targets")
+        fping = ['ssh','root@'+server,"fping", "-c", "15"]
+        for nic,data in targets.items():
+            fping.append(data['target'])
+        result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        installed = re.findall("bash: fping:",result.stderr.decode('utf-8'), re.DOTALL)
+        if installed:
+            print("fping not found, installing")
+            self.cmd(server,"apt-get update && apt-get install fping -y")
+            print("fping installed")
+            print(server,"Getting latency from all targets")
+            result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        parsed = re.findall("([0-9.]+).*?loss = [0-9]+/[0-9]+/([0-9]+)%(, min/avg/max =.([0-9.]+)/([0-9.]+)/([0-9.]+))?",result.stderr.decode('utf-8'), re.DOTALL)
+        for nic,data in targets.items():
+            for entry in parsed:
+                if entry[0] == data['target']:
+                    data['loss'] = entry[1]
+                    data['latency'] = str(int(float(entry[4]) * 100));
+                    if (data['loss'] != "0"):
+                        print("Warning: Packet loss detected to",data['target'],data['loss']+"%")
+        if (len(targets) != len(parsed)):
+            print("Warning: Targets do not match expected responses.")
+        return targets
 
     def run(self):
         global targets
@@ -60,13 +79,15 @@ class Bird:
         for server in targets:
             print("---",server,"---")
             configs = self.cmd(server,'ip addr show',True)
-            links = re.findall("([A-Z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)/([0-9]+)",configs, re.MULTILINE | re.DOTALL)
-            latency = self.getLatency(server,links)
-            print(server,"generating config")
+            links = re.findall("([A-Z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs, re.MULTILINE | re.DOTALL)
+            nodes = self.genTargets(links)
+            latency = self.getLatency(server,nodes)
+            print(server,"Generating config")
             bird = T.genBird(latency)
             self.prepare(server)
-            print(server,"writing config")
+            print(server,"Writing config")
             self.cmd(server,"echo '"+bird+"' > /etc/bird/bird.conf",False)
-            print(server,"starting bird")
+            print(server,"Starting bird")
             self.cmd(server,'service bird start',False)
             print(server,"done")
+            time.sleep(15)
