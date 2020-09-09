@@ -17,11 +17,9 @@ class Bird:
         else:
             subprocess.run(cmd)
 
-    def prepare(self):
-        print("Preparing")
-        for server in targets:
-            print("Stopping bird on",server)
-            self.cmd(server,'service bird stop',False)
+    def prepare(self,server):
+        print(server,"stopping bird")
+        self.cmd(server,'service bird stop',False)
 
     def ping(self,server,ip):
         result = self.cmd(server,"ping -c 5 "+ip,True)
@@ -57,14 +55,18 @@ class Bird:
 
     def run(self):
         global targets
-        self.prepare()
         T = Templator()
         print("Launching")
         for server in targets:
+            print("---",server,"---")
             configs = self.cmd(server,'ip addr show',True)
             links = re.findall("([A-Z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)/([0-9]+)",configs, re.MULTILINE | re.DOTALL)
             latency = self.getLatency(server,links)
+            print(server,"generating config")
             bird = T.genBird(latency)
+            self.prepare(server)
+            print(server,"writing config")
             self.cmd(server,"echo '"+bird+"' > /etc/bird/bird.conf",False)
+            print(server,"starting bird")
             self.cmd(server,'service bird start',False)
             print(server,"done")
