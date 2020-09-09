@@ -20,10 +20,6 @@ class Bird:
         else:
             subprocess.run(cmd)
 
-    def prepare(self,server):
-        print(server,"Stopping bird")
-        self.cmd(server,'service bird stop')
-
     def resolve(self,ip,range,netmask):
         rangeDecimal = int(netaddr.IPAddress(range))
         ipDecimal = int(netaddr.IPAddress(ip))
@@ -84,10 +80,15 @@ class Bird:
             latency = self.getLatency(server,nodes)
             print(server,"Generating config")
             bird = T.genBird(latency)
-            self.prepare(server)
             print(server,"Writing config")
             self.cmd(server,"echo '"+bird+"' > /etc/bird/bird.conf",False)
-            print(server,"Starting bird")
-            self.cmd(server,'service bird start',False)
+            try:
+                self.cmd(server,"pgrep bird",True)
+                print(server,"Reloading bird")
+                self.cmd(server,'service bird reload')
+                time.sleep(10)
+            except:
+                print(server,"Starting bird")
+                self.cmd(server,'service bird start')
+                time.sleep(15)
             print(server,"done")
-            time.sleep(15)
