@@ -75,7 +75,7 @@ class Bird:
         for server in targets:
             print("---",server,"---")
             configs = self.cmd(server,'ip addr show',True)
-            links = re.findall("([A-Z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs, re.MULTILINE | re.DOTALL)
+            links = re.findall("(pipe[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs, re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)
             print(server,"Generating config")
