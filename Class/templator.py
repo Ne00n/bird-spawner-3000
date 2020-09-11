@@ -39,7 +39,7 @@ ipv4 {
 	area 0 { '''
         for target,data in latency.items():
             template += '''
-                interface "pipe'''+target+'''" {
+                interface "'''+target+'''" {
                         type ptmp;
                         neighbors {
                         '''+data['target']+''';
