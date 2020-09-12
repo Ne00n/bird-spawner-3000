@@ -68,6 +68,13 @@ class Bird:
             print("Warning: Targets do not match expected responses.")
         return targets
 
+    def shutdown(self):
+        global targets
+        for server in targets:
+            print("---",server,"---")
+            print("Stopping bird")
+            self.cmd(server,'service bird stop')
+
     def run(self):
         global targets
         T = Templator()

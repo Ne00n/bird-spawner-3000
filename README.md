@@ -13,4 +13,11 @@ Getting bird2: https://packages.sury.org/bird/README.txt
 Rename hosts.example.json to hosts.json and fill it up
 
 **Usage**<br />
-python3 bird.py
+Configure bird2
+```
+python3 bird.py build
+```
+Shutdown of all bird instances
+```
+python3 bird.py shutdown
+```
