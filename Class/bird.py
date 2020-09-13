@@ -83,10 +83,11 @@ class Bird:
             print("---",server,"---")
             configs = self.cmd(server,'ip addr show',True)
             links = re.findall("(pipe[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs, re.MULTILINE | re.DOTALL)
+            local = re.findall("inet (10\.0[0-9.]+\.1)\/32 scope global lo",configs, re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)
             print(server,"Generating config")
-            bird = T.genBird(latency)
+            bird = T.genBird(latency,local)
             print(server,"Writing config")
             self.cmd(server,"echo '"+bird+"' > /etc/bird/bird.conf",False)
             try:

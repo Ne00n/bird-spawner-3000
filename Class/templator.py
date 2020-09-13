@@ -4,25 +4,43 @@ class Templator:
         for entry in latency:
             return entry
 
-    def genBird(self,latency):
+    def genBird(self,latency,local):
         firstNode = self.getFirst(latency)
+        if not local:
+            routerID = latency[firstNode]["origin"]
+        else:
+            routerID = local[0]
         template = '''log syslog all;
-router id '''+latency[firstNode]["origin"]+''';
+router id '''+routerID+''';
 
 protocol device {
     scan time 10;
 }
+'''
+        localPTP = ""
+        for target,data in latency.items():
+            if localPTP != "":
+                localPTP += ","
+            localPTP += data['target']+"/32-"
+        template += '''
+function avoid_local_ptp() {
+### Avoid fucking around with direct peers
+return net ~ [ '''+localPTP+''' ];
+}
 
 protocol direct {
     ipv4;
-    interface "lo", "pipe*";
+    interface "lo";
 }
 
 protocol kernel {
 	ipv4 {
-	      export filter {
-		krt_prefsrc = '''+latency[firstNode]["origin"]+''';
-		accept;
+	      export filter { '''
+        if local:
+            template += 'krt_prefsrc = '+routerID+';'
+        template += '''
+            if avoid_local_ptp() then reject;
+            accept;
 		};
 	};
 }
