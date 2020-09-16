@@ -56,19 +56,22 @@ class Bird:
             print("fping installed")
             print(server,"Getting latency from all targets")
             result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        parsed = re.findall("([0-9.]+)\s*:.*?loss = [0-9]+\/[0-9]+\/([0-9]+)%(, min\/avg\/max =.([0-9.]+)\/([0-9.]+)\/([0-9.]+))?",result.stderr.decode('utf-8'), re.DOTALL)
+        parsed = re.findall("([0-9.]+).*?([0-9]+.[0-9]).*?([0-9])% loss",result.stdout.decode('utf-8'), re.MULTILINE)
+        latency =  {}
+        for ip,ms,loss in parsed:
+            if ip not in latency:
+                latency[ip] = []
+            latency[ip].append([ms,loss])
+        for entry,row in latency.items():
+            row.sort()
         for nic,data in list(targets.items()):
-            for entry in parsed:
-                if entry[0] == data['target']:
-                    data['loss'] = entry[1]
-                    if entry[4] != '':
-                        data['latency'] = str(int(float(entry[4]) * 100))
-                    else:
-                        print("Warning: cannot reach",data['target'],"skipping")
-                        del targets[nic]
-                    if (data['loss'] != "0"):
-                        print("Warning: Packet loss detected to",data['target'],data['loss']+"%")
-        if (len(targets) != len(parsed)):
+            for entry,row in latency.items():
+                if entry == data['target']:
+                    data['latency'] = int(((float(row[0][0]) + float(row[1][0]) + float(row[2][0]) + float(row[3][0]) + float(row[4][0])) / 5) * 100)
+                elif data['target'] not in latency and nic in targets:
+                    print("Warning: cannot reach",data['target'],"skipping")
+                    del targets[nic]
+        if (len(targets) != len(latency)):
             print("Warning: Targets do not match expected responses.")
         return targets
 
