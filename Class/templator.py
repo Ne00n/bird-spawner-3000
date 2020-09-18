@@ -49,10 +49,16 @@ protocol kernel {
 	ipv6 { export all; };
 }
 
+filter export_OSPF {
+    if net ~ [ 10.0.252.0/24+ ] then reject;
+    if source ~ [ RTS_DEVICE, RTS_STATIC ] then accept;
+    reject;
+}
+
 protocol ospf {
 ipv4 {
 		import all;
-                export where source ~ [ RTS_DEVICE, RTS_STATIC ];
+        export filter export_OSPF;
         };
 	area 0 { '''
         for target,data in latency.items():
