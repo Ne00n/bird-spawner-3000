@@ -12,8 +12,17 @@ Getting bird2: https://packages.sury.org/bird/README.txt
 **Prepare**<br />
 Rename hosts.example.json to hosts.json and fill it up
 
+**Examples**<br />
+
+/etc/hosts<br />
+```
+bla.bla.bla.bla    Server1
+bla.bla.bla.bla    Server2
+bla.bla.bla.bla    Server3
+```
+
 **Usage**<br />
-Configure bird2
+Configures/Updates bird2
 ```
 python3 bird.py build
 ```
