@@ -97,6 +97,7 @@ class Bird:
             bird = T.genBird(latency,local)
             print(server,"Writing config")
             self.cmd(server,"echo '"+bird+"' > /etc/bird/bird.conf",False)
+            self.cmd(server,"touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",False)
             try:
                 self.cmd(server,"pgrep bird",True)
                 print(server,"Reloading bird")
