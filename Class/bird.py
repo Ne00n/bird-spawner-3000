@@ -10,15 +10,10 @@ class Bird:
         with open('hosts.json') as handle:
             targets = json.loads(handle.read())
 
-    def cmd(self,server,command,interactive=False,list=False):
-        if list == True:
-            cmd = command
-        else:
-            cmd = ['ssh','root@'+server,command]
-        if interactive == True:
-            return subprocess.check_output(cmd).decode("utf-8")
-        else:
-            subprocess.run(cmd)
+    def cmd(self,cmd,server,ssh=True):
+        cmd = 'ssh root@'+server+' "'+cmd+'"' if ssh else cmd
+        p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        return [p.stdout.decode('utf-8'),p.stderr.decode('utf-8')]
 
     def resolve(self,ip,range,netmask):
         rangeDecimal = int(netaddr.IPAddress(range))
@@ -52,7 +47,7 @@ class Bird:
         installed = re.findall("bash: fping:",result.stderr.decode('utf-8'), re.DOTALL)
         if installed:
             print("fping not found, installing")
-            self.cmd(server,"apt-get update && apt-get install fping -y")
+            self.cmd('apt-get update && apt-get install fping -y',server)
             print("fping installed")
             print(server,"Getting latency from all targets")
             result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -80,7 +75,7 @@ class Bird:
         for server in targets:
             print("---",server,"---")
             print("Stopping bird")
-            self.cmd(server,'service bird stop')
+            self.cmd('service bird stop',server)
 
     def run(self):
         global targets
@@ -88,23 +83,36 @@ class Bird:
         print("Launching")
         for server in targets:
             print("---",server,"---")
-            configs = self.cmd(server,'ip addr show',True)
-            links = re.findall("(pipe[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs, re.MULTILINE | re.DOTALL)
-            local = re.findall("inet (10\.0[0-9.]+\.1)\/32 scope global lo",configs, re.MULTILINE | re.DOTALL)
+            configs = self.cmd('ip addr show',server)
+            links = re.findall("(pipe[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
+            local = re.findall("inet (10\.0[0-9.]+\.1)\/32 scope global lo",configs[0], re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)
             print(server,"Generating config")
             bird = T.genBird(latency,local)
             print(server,"Writing config")
-            self.cmd(server,"echo '"+bird+"' > /etc/bird/bird.conf",False)
-            self.cmd(server,"touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",False)
-            try:
-                self.cmd(server,"pgrep bird",True)
-                print(server,"Reloading bird")
-                self.cmd(server,'service bird reload')
-                time.sleep(10)
-            except:
+            self.cmd("echo '"+bird+"' > /etc/bird/bird.conf",server)
+            self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
+            proc = self.cmd("pgrep bird",server)
+            if proc[0] == "":
                 print(server,"Starting bird")
-                self.cmd(server,'service bird start')
-                time.sleep(15)
+                self.cmd("service bird start",server)
+                sleep(15)
+            else:
+                print(server,"Reloading bird")
+                self.cmd("service bird reload",server)
+                time.sleep(10)
+            print(server,"Updating latency.py")
+            self.cmd('scp latency.py root@'+server+':/root/','',False)
+            print(server,"Checking cronjob")
+            cron = self.cmd("crontab -u root -l",server)
+            if cron[0] == '':
+                print(server,"Creating cronjob")
+                self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
+            else:
+                if "/root/latency.py" in cron[0]:
+                    print(server,"Cronjob already exists")
+                else:
+                    print(server,"Adding cronjob")
+                    self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
             print(server,"done")
