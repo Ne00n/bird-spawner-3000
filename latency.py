@@ -45,38 +45,34 @@ class Latency:
         return config
 
 L = Latency()
-try:
-    #Check if bird is running
-    running = L.cmd("pgrep bird")
-    if running[0] == "": raise ValueError('Bird is ded, very sad.')
-    #Getting config
-    configRaw = L.cmd("cat /etc/bird/bird.conf")[0]
-    #Parsing
-    config = L.parse(configRaw)
-    #fping
-    result = L.getLatency(config)
-    #filter anything with less or equal than 100 = 1ms change
-    count = 0
-    while count < len(result):
-        entry = result[count]
-        if abs(int(entry['weight']) - int(entry['latency'])) <= 100:
-            print("Dropping",entry['nic'])
-            del result[count]
-        else:
-            count = count +1
-    #update
-    for entry in result:
-        configRaw = re.sub("cost "+str(entry['weight'])+"; #"+entry['target'], "cost "+str(entry['latency'])+"; #"+entry['target'], configRaw, 0, re.MULTILINE)
-        print("Updating",entry['nic'])
-    if not result:
-        print("Nothing to do")
+#Check if bird is running
+running = L.cmd("pgrep bird")
+if running[0] == "": raise ValueError('Bird is ded, very sad.')
+#Getting config
+configRaw = L.cmd("cat /etc/bird/bird.conf")[0]
+#Parsing
+config = L.parse(configRaw)
+#fping
+result = L.getLatency(config)
+#filter anything with less or equal than 100 = 1ms change
+count = 0
+while count < len(result):
+    entry = result[count]
+    if abs(int(entry['weight']) - int(entry['latency'])) <= 100:
+        print("Dropping",entry['nic'])
+        del result[count]
     else:
-        #push
-        print("Writing config")
-        L.cmd("echo '"+configRaw+"' > /etc/bird/bird.conf")
-        #reload
-        print("Reloading bird")
-        L.cmd('service bird reload')
-
-except Exception as e:
-    print("Error:",str(e))
+        count = count +1
+#update
+for entry in result:
+    configRaw = re.sub("cost "+str(entry['weight'])+"; #"+entry['target'], "cost "+str(entry['latency'])+"; #"+entry['target'], configRaw, 0, re.MULTILINE)
+    print("Updating",entry['nic'])
+if not result:
+    print("Nothing to do")
+else:
+    #push
+    print("Writing config")
+    L.cmd("echo '"+configRaw+"' > /etc/bird/bird.conf")
+    #reload
+    print("Reloading bird")
+    L.cmd('service bird reload')
