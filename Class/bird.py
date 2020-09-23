@@ -91,7 +91,7 @@ class Bird:
             print(server,"Generating config")
             bird = T.genBird(latency,local)
             print(server,"Writing config")
-            self.cmd("echo '"+bird+"' > /etc/bird/bird.conf",server)
+            subprocess.check_output(['ssh','root@'+server,"echo '"+bird+"' > /etc/bird/bird.conf"])
             self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
             proc = self.cmd("pgrep bird",server)
             if proc[0] == "":
