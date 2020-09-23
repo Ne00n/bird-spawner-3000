@@ -30,7 +30,7 @@ return net ~ [ '''+localPTP+''' ];
 
 protocol direct {
     ipv4;
-    interface "lo","vxlan1";
+    interface "lo";
 }
 
 protocol kernel {
@@ -72,7 +72,7 @@ ipv4 {
                         neighbors {
                         '''+data['target']+''';
                         };
-                        cost '''+str(data['latency'])+''';
+                        cost '''+str(data['latency'])+'''; #'''+data['target']+'''
                 };
             '''
         template += """
