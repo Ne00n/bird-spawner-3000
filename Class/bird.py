@@ -104,6 +104,7 @@ class Bird:
                 time.sleep(10)
             print(server,"Updating latency.py")
             self.cmd('scp latency.py root@'+server+':/root/','',False)
+            self.cmd('chmod +x /root/latency.py',server)
             print(server,"Checking cronjob")
             cron = self.cmd("crontab -u root -l",server)
             if cron[0] == '':
