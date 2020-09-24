@@ -89,7 +89,7 @@ class Bird:
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)
             print(server,"Generating config")
-            bird = T.genBird(latency,local)
+            bird = T.genBird(latency,local,int(time.time()))
             print(server,"Writing config")
             subprocess.check_output(['ssh','root@'+server,"echo '"+bird+"' > /etc/bird/bird.conf"])
             self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
