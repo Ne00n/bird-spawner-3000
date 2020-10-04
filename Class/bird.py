@@ -97,7 +97,7 @@ class Bird:
             if proc[0] == "":
                 print(server,"Starting bird")
                 self.cmd("service bird start",server)
-                sleep(15)
+                time.sleep(15)
             else:
                 print(server,"Reloading bird")
                 self.cmd("service bird reload",server)
