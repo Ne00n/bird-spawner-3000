@@ -77,10 +77,11 @@ class Bird:
             print("Stopping bird")
             self.cmd('service bird stop',server)
 
-    def run(self):
+    def run(self,latency="yes"):
         global targets
         T = Templator()
         print("Launching")
+        print("latency.py",latency)
         for server in targets:
             print("---",server,"---")
             configs = self.cmd('ip addr show',server)
@@ -102,18 +103,19 @@ class Bird:
                 print(server,"Reloading bird")
                 self.cmd("service bird reload",server)
                 time.sleep(10)
-            print(server,"Updating latency.py")
-            self.cmd('scp latency.py root@'+server+':/root/','',False)
-            self.cmd('chmod +x /root/latency.py',server)
-            print(server,"Checking cronjob")
-            cron = self.cmd("crontab -u root -l",server)
-            if cron[0] == '':
-                print(server,"Creating cronjob")
-                self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
-            else:
-                if "/root/latency.py" in cron[0]:
-                    print(server,"Cronjob already exists")
+            if latency == "yes":
+                print(server,"Updating latency.py")
+                self.cmd('scp latency.py root@'+server+':/root/','',False)
+                self.cmd('chmod +x /root/latency.py',server)
+                print(server,"Checking cronjob")
+                cron = self.cmd("crontab -u root -l",server)
+                if cron[0] == '':
+                    print(server,"Creating cronjob")
+                    self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
                 else:
-                    print(server,"Adding cronjob")
-                    self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
+                    if "/root/latency.py" in cron[0]:
+                        print(server,"Cronjob already exists")
+                    else:
+                        print(server,"Adding cronjob")
+                        self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
             print(server,"done")
