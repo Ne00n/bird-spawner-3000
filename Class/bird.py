@@ -77,7 +77,7 @@ class Bird:
             print("Stopping bird")
             self.cmd('service bird stop',server)
 
-    def run(self,latency="yes"):
+    def run(self,latency="no"):
         global targets
         T = Templator()
         print("Launching")
