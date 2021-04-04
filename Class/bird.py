@@ -4,10 +4,10 @@ from Class.templator import Templator
 targets = []
 
 class Bird:
-    def __init__(self):
+    def __init__(self,config="hosts.json"):
         global targets
-        print("Loading config")
-        with open('hosts.json') as handle:
+        print("Loading",config)
+        with open(config) as handle:
             targets = json.loads(handle.read())
 
     def cmd(self,cmd,server,ssh=True):
@@ -77,19 +77,20 @@ class Bird:
             print("Stopping bird")
             self.cmd('service bird stop',server)
 
-    def run(self):
+    def run(self,latency="no"):
         global targets
         T = Templator()
         print("Launching")
+        print("latency.py",latency)
         for server in targets:
             print("---",server,"---")
             configs = self.cmd('ip addr show',server)
             links = re.findall("(pipe[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
-            local = re.findall("inet (10\.0[0-9.]+\.1)\/32 scope global lo",configs[0], re.MULTILINE | re.DOTALL)
+            local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)
             print(server,"Generating config")
-            bird = T.genBird(latency,local)
+            bird = T.genBird(latency,local,int(time.time()))
             print(server,"Writing config")
             subprocess.check_output(['ssh','root@'+server,"echo '"+bird+"' > /etc/bird/bird.conf"])
             self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
@@ -97,23 +98,24 @@ class Bird:
             if proc[0] == "":
                 print(server,"Starting bird")
                 self.cmd("service bird start",server)
-                sleep(15)
+                time.sleep(15)
             else:
                 print(server,"Reloading bird")
                 self.cmd("service bird reload",server)
                 time.sleep(10)
-            print(server,"Updating latency.py")
-            self.cmd('scp latency.py root@'+server+':/root/','',False)
-            self.cmd('chmod +x /root/latency.py',server)
-            print(server,"Checking cronjob")
-            cron = self.cmd("crontab -u root -l",server)
-            if cron[0] == '':
-                print(server,"Creating cronjob")
-                self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
-            else:
-                if "/root/latency.py" in cron[0]:
-                    print(server,"Cronjob already exists")
+            if latency == "yes":
+                print(server,"Updating latency.py")
+                self.cmd('scp latency.py root@'+server+':/root/','',False)
+                self.cmd('chmod +x /root/latency.py',server)
+                print(server,"Checking cronjob")
+                cron = self.cmd("crontab -u root -l",server)
+                if cron[0] == '':
+                    print(server,"Creating cronjob")
+                    self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
                 else:
-                    print(server,"Adding cronjob")
-                    self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
+                    if "/root/latency.py" in cron[0]:
+                        print(server,"Cronjob already exists")
+                    else:
+                        print(server,"Adding cronjob")
+                        self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
             print(server,"done")

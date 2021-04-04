@@ -4,14 +4,14 @@ class Templator:
         for entry in latency:
             return entry
 
-    def genBird(self,latency,local):
+    def genBird(self,latency,local,time):
         firstNode = self.getFirst(latency)
         if not local:
             routerID = latency[firstNode]["origin"]
         else:
-            routerID = local[0]
+            routerID = local[0][0]
         template = '''log syslog all;
-router id '''+routerID+''';
+router id '''+routerID+'''; #updated '''+str(time)+'''
 
 protocol device {
     scan time 10;

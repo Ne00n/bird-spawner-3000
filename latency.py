@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import subprocess, json, re
+import subprocess, json, time, re
 
 class Latency:
     def cmd(self,cmd):
@@ -49,7 +49,7 @@ L = Latency()
 running = L.cmd("pgrep bird")
 if running[0] == "": raise ValueError('Bird is ded, very sad.')
 #Getting config
-configRaw = L.cmd("cat /etc/bird/bird.conf")[0]
+configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 #Parsing
 config = L.parse(configRaw)
 #fping
@@ -64,6 +64,9 @@ while count < len(result):
     else:
         count = count +1
 #update
+configs = L.cmd('ip addr show')
+local = re.findall("inet (10\.0[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
+configRaw = re.sub(local[0][0]+"; #updated [0-9]+", local[0][0]+"; #updated "+str(int(time.time())), configRaw, 0, re.MULTILINE)
 for entry in result:
     configRaw = re.sub("cost "+str(entry['weight'])+"; #"+entry['target'], "cost "+str(entry['latency'])+"; #"+entry['target'], configRaw, 0, re.MULTILINE)
     print("Updating",entry['nic'])
