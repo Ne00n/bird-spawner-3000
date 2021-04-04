@@ -1,7 +1,7 @@
 from Class.bird import Bird
 import sys
 print("Bird Spawner 3000")
-config,latency = "hosts.json","yes"
+config,latency = "hosts.json","no"
 if len(sys.argv) > 2:
     config = sys.argv[2]
 if len(sys.argv) > 3:
