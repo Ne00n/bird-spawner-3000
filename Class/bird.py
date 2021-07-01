@@ -85,7 +85,7 @@ class Bird:
         for server in targets['servers']:
             print("---",server,"---")
             configs = self.cmd('ip addr show',server)
-            links = re.findall("(("+targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
+            links = re.findall("(("+targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
             local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)
