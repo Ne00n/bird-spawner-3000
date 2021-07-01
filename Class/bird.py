@@ -25,7 +25,7 @@ class Bird:
     def genTargets(self,links):
         result = {}
         for link in links:
-            nic,ip,lastByte = link[0],link[1],link[2]
+            nic,ip,lastByte = link[0],link[2],link[3]
             origin = ip+lastByte
             #Client or Server roll the dice or rather not, so we ping the correct ip
             target = self.resolve(ip+str(int(lastByte)+1),origin,31)
@@ -82,10 +82,10 @@ class Bird:
         T = Templator()
         print("Launching")
         print("latency.py",latency)
-        for server in targets:
+        for server in targets['servers']:
             print("---",server,"---")
             configs = self.cmd('ip addr show',server)
-            links = re.findall("(pipe[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
+            links = re.findall("(("+targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT,NOARP.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
             local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latency = self.getLatency(server,nodes)

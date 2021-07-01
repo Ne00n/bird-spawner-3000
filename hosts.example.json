@@ -1,5 +1,8 @@
-[
-"Server1",
-"Server2",
-"Server3"
-]
+{
+  "prefixes":"pipe",
+  "servers":{
+    "Server1",
+    "Server2",
+    "Server3"
+  }
+}
