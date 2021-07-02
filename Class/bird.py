@@ -72,7 +72,7 @@ class Bird:
 
     def shutdown(self):
         global targets
-        for server in targets:
+        for server in targets['servers']:
             print("---",server,"---")
             print("Stopping bird")
             self.cmd('service bird stop',server)
