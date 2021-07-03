@@ -7,7 +7,7 @@ class Latency:
         return [p.stdout.decode('utf-8'),p.stderr.decode('utf-8')]
 
     def parse(self,configRaw):
-        parsed = re.findall('interface "(pipe.*?)".*?([0-9.]+).*?cost ([0-9]+)',configRaw, re.DOTALL)
+        parsed = re.findall('interface "([a-zA-Z0-9]{3,}?)".*?([0-9.]+).*?cost ([0-9]+)',configRaw, re.DOTALL)
         data = []
         for nic,target,weight in parsed:
             data.append({'nic':nic,'target':target,'weight':weight})
@@ -35,30 +35,27 @@ class Latency:
             row.sort()
         for node in list(config):
             for entry,row in latency.items():
-                if entry == node['target']:
-                    node['latency'] = self.getAvrg(row)
-                elif node['target'] not in latency and nic in config:
-                    print("Warning: cannot reach",node['target'],"skipping")
-                    del config[node['nic']]
-        if (len(config) != len(latency)):
-            print("Warning: Targets do not match expected responses.")
+                if entry == node['target']: node['latency'] = self.getAvrg(row)
         return config
 
 L = Latency()
 #Check if bird is running
-running = L.cmd("pgrep bird")
-if running[0] == "": raise ValueError('Bird is ded, very sad.')
+bird = L.cmd("pgrep bird")
+if bird[0] == "": raise ValueError('bird2 not running, exiting.')
+#Check if fping is running
+fping = L.cmd("pgrep fping")
+if fping[0] != "": raise ValueError('fping is running, exiting.')
 #Getting config
 configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 #Parsing
 config = L.parse(configRaw)
 #fping
 result = L.getLatency(config)
-#filter anything with less or equal than 100 = 1ms change
+#filter anything with less or equal than 500 = 5ms change
 count = 0
 while count < len(result):
     entry = result[count]
-    if abs(int(entry['weight']) - int(entry['latency'])) <= 100:
+    if 'latency' not in entry or abs(int(entry['weight']) - int(entry['latency'])) <= 500:
         print("Dropping",entry['nic'])
         del result[count]
     else:

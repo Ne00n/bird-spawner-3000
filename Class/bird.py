@@ -88,9 +88,9 @@ class Bird:
             links = re.findall("(("+targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
             local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
-            latency = self.getLatency(server,nodes)
+            latencyData = self.getLatency(server,nodes)
             print(server,"Generating config")
-            bird = T.genBird(latency,local,int(time.time()))
+            bird = T.genBird(latencyData,local,int(time.time()))
             print(server,"Writing config")
             subprocess.check_output(['ssh','root@'+server,"echo '"+bird+"' > /etc/bird/bird.conf"])
             self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
@@ -111,11 +111,11 @@ class Bird:
                 cron = self.cmd("crontab -u root -l",server)
                 if cron[0] == '':
                     print(server,"Creating cronjob")
-                    self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
+                    self.cmd('echo \\"*/5 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
                 else:
                     if "/root/latency.py" in cron[0]:
                         print(server,"Cronjob already exists")
                     else:
                         print(server,"Adding cronjob")
-                        self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
+                        self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/5 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
             print(server,"done")
