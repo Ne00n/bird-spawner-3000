@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import subprocess, json, time, re
+from random import randint
 
 class Latency:
     def cmd(self,cmd):
@@ -71,6 +72,7 @@ if not result:
     print("Nothing to do")
 else:
     #push
+    time.sleep(randint(10,120))
     print("Writing config")
     L.cmd("echo '"+configRaw+"' > /etc/bird/bird.conf")
     #reload
