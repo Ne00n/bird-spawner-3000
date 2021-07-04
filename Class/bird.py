@@ -98,11 +98,9 @@ class Bird:
             if proc[0] == "":
                 print(server,"Starting bird")
                 self.cmd("service bird start",server)
-                time.sleep(15)
             else:
                 print(server,"Reloading bird")
                 self.cmd("service bird reload",server)
-                time.sleep(10)
             if latency == "yes":
                 print(server,"Updating latency.py")
                 self.cmd('scp latency.py root@'+server+':/root/','',False)
@@ -118,4 +116,6 @@ class Bird:
                     else:
                         print(server,"Adding cronjob")
                         self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/5 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
+            else:
+                self.cmd("crontab -u root -l | grep -v '/root/latency.py'  | crontab -u root -",server)
             print(server,"done")
