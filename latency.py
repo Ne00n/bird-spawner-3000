@@ -52,11 +52,11 @@ configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 config = L.parse(configRaw)
 #fping
 result = L.getLatency(config)
-#filter anything with less or equal than 500 = 5ms change
+#filter anything with less or equal than 200 = 2ms change
 count = 0
 while count < len(result):
     entry = result[count]
-    if 'latency' not in entry or abs(int(entry['weight']) - int(entry['latency'])) <= 500:
+    if 'latency' not in entry or abs(int(entry['weight']) - int(entry['latency'])) <= 200:
         print("Dropping",entry['nic'])
         del result[count]
     else:
