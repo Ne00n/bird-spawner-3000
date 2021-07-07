@@ -1,14 +1,11 @@
 import subprocess, netaddr, time, json, re
 from Class.templator import Templator
 
-targets = []
-
 class Bird:
     def __init__(self,config="hosts.json"):
-        global targets
         print("Loading",config)
         with open(config) as handle:
-            targets = json.loads(handle.read())
+            self.targets = json.loads(handle.read())
 
     def cmd(self,cmd,server,ssh=True):
         cmd = 'ssh root@'+server+' "'+cmd+'"' if ssh else cmd
@@ -71,21 +68,19 @@ class Bird:
         return targets
 
     def shutdown(self):
-        global targets
-        for server in targets['servers']:
+        for server in self.targets['servers']:
             print("---",server,"---")
             print("Stopping bird")
             self.cmd('service bird stop',server)
 
     def run(self,latency="no"):
-        global targets
         T = Templator()
         print("Launching")
         print("latency.py",latency)
-        for server in targets['servers']:
+        for server in self.targets['servers']:
             print("---",server,"---")
             configs = self.cmd('ip addr show',server)
-            links = re.findall("(("+targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
+            links = re.findall("(("+self.targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
             local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
             nodes = self.genTargets(links)
             latencyData = self.getLatency(server,nodes)
