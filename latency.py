@@ -15,11 +15,10 @@ class Latency:
         return data
 
     def getAvrg(self,row):
-        n,result = 12,0
+        result = 0
         for index,entry in enumerate(row):
-            if index <= n:
-                result += float(entry[0])
-        return int(float(result / 13) * 100)
+            result += float(entry[0])
+        return int(float(result / 15) * 100)
 
     def getLatency(self,config):
         fping = ["fping", "-c", "15"]
