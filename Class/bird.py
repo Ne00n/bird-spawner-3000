@@ -1,14 +1,13 @@
 import subprocess, netaddr, time, json, re
 from Class.templator import Templator
-
-targets = []
+from threading import Thread
 
 class Bird:
     def __init__(self,config="hosts.json"):
-        global targets
         print("Loading",config)
         with open(config) as handle:
-            targets = json.loads(handle.read())
+            self.targets = json.loads(handle.read())
+        self.templator = Templator()
 
     def cmd(self,cmd,server,ssh=True):
         cmd = 'ssh root@'+server+' "'+cmd+'"' if ssh else cmd
@@ -64,58 +63,67 @@ class Bird:
                 if entry == data['target']:
                     data['latency'] = int(((float(row[0][0]) + float(row[1][0]) + float(row[2][0]) + float(row[3][0]) + float(row[4][0])) / 5) * 100)
                 elif data['target'] not in latency and nic in targets:
-                    print("Warning: cannot reach",data['target'],"skipping")
+                    print(server,"Warning: cannot reach",data['target'],"skipping")
                     del targets[nic]
         if (len(targets) != len(latency)):
-            print("Warning: Targets do not match expected responses.")
+            print(server,"Warning: Targets do not match expected responses.")
         return targets
 
     def shutdown(self):
-        global targets
-        for server in targets['servers']:
+        for server in self.targets['servers']:
             print("---",server,"---")
             print("Stopping bird")
             self.cmd('service bird stop',server)
 
+    def work(self,server,latency):
+        configs = self.cmd('ip addr show',server)
+        links = re.findall("(("+self.targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
+        local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
+        nodes = self.genTargets(links)
+        latencyData = self.getLatency(server,nodes)
+        print(server,"Generating config")
+        bird = self.templator.genBird(latencyData,local,int(time.time()))
+        print(server,"Writing config")
+        subprocess.check_output(['ssh','root@'+server,"echo '"+bird+"' > /etc/bird/bird.conf"])
+        self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
+        proc = self.cmd("pgrep bird",server)
+        if proc[0] == "":
+            print(server,"Starting bird")
+            self.cmd("service bird start",server)
+        else:
+            print(server,"Reloading bird")
+            self.cmd("service bird reload",server)
+        if latency == "yes":
+            print(server,"Updating latency.py")
+            self.cmd('scp latency.py root@'+server+':/root/','',False)
+            self.cmd('chmod +x /root/latency.py',server)
+            print(server,"Checking cronjob")
+            cron = self.cmd("crontab -u root -l",server)
+            if cron[0] == '':
+                print(server,"Creating cronjob")
+                self.cmd('echo \\"*/5 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
+            else:
+                if "/root/latency.py" in cron[0]:
+                    print(server,"Cronjob already exists")
+                else:
+                    print(server,"Adding cronjob")
+                    self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/5 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
+        else:
+            self.cmd("crontab -u root -l | grep -v '/root/latency.py'  | crontab -u root -",server)
+        print(server,"done")
+
     def run(self,latency="no"):
-        global targets
-        T = Templator()
+        threads = []
         print("Launching")
         print("latency.py",latency)
-        for server in targets['servers']:
-            print("---",server,"---")
-            configs = self.cmd('ip addr show',server)
-            links = re.findall("(("+targets['prefixes']+")[A-Za-z0-9]+): <POINTOPOINT.*?inet (10[0-9.]+\.)([0-9]+)",configs[0], re.MULTILINE | re.DOTALL)
-            local = re.findall("inet (10\.0\.(?!252)[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
-            nodes = self.genTargets(links)
-            latency = self.getLatency(server,nodes)
-            print(server,"Generating config")
-            bird = T.genBird(latency,local,int(time.time()))
-            print(server,"Writing config")
-            subprocess.check_output(['ssh','root@'+server,"echo '"+bird+"' > /etc/bird/bird.conf"])
-            self.cmd("touch /etc/bird/bgp.conf && touch /etc/bird/bgp_ospf.conf",server)
-            proc = self.cmd("pgrep bird",server)
-            if proc[0] == "":
-                print(server,"Starting bird")
-                self.cmd("service bird start",server)
-                time.sleep(15)
+        answer = input("Use Threading? (y/n): ")
+        for server in self.targets['servers']:
+            if answer != "y":
+                self.work(server,latency)
             else:
-                print(server,"Reloading bird")
-                self.cmd("service bird reload",server)
-                time.sleep(10)
-            if latency == "yes":
-                print(server,"Updating latency.py")
-                self.cmd('scp latency.py root@'+server+':/root/','',False)
-                self.cmd('chmod +x /root/latency.py',server)
-                print(server,"Checking cronjob")
-                cron = self.cmd("crontab -u root -l",server)
-                if cron[0] == '':
-                    print(server,"Creating cronjob")
-                    self.cmd('echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
-                else:
-                    if "/root/latency.py" in cron[0]:
-                        print(server,"Cronjob already exists")
-                    else:
-                        print(server,"Adding cronjob")
-                        self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/10 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
-            print(server,"done")
+                threads.append(Thread(target=self.work, args=([server,latency])))
+        if answer == "y":
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
