@@ -18,10 +18,10 @@ class Latency:
         result = 0
         for index,entry in enumerate(row):
             result += float(entry[0])
-        return int(float(result / 15) * 100)
+        return int(float(result / 30) * 100)
 
     def getLatency(self,config):
-        fping = ["fping", "-c", "15"]
+        fping = ["fping", "-c", "30"]
         for row in config:
             fping.append(row['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
