@@ -64,6 +64,12 @@ class Bird:
                     data['latency'] = int(((float(row[0][0]) + float(row[1][0]) + float(row[2][0]) + float(row[3][0]) + float(row[4][0])) / 5) * 100)
                 elif data['target'] not in latency and nic in targets:
                     print(server,"Warning: cannot reach",data['target'],"skipping")
+                    print(server,"Restarting wireguard connection",data['target'])
+                    route = self.cmd("ip route get "+data['target'],server)
+                    interface = re.findall(".*?dev ([a-zA-Z0-9]+)",route[0], re.MULTILINE)
+                    self.cmd("systemctl stop wg-quick@"+interface[0],server)
+                    time.sleep(3)
+                    self.cmd("systemctl start wg-quick@"+interface[0],server)
                     del targets[nic]
         if (len(targets) != len(latency)):
             print(server,"Warning: Targets do not match expected responses.")

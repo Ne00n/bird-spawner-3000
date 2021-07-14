@@ -3,6 +3,8 @@
 Invasion of the Birds Expansion for pipe-builder-3000: https://github.com/Ne00n/pipe-builder-3000/ </br>
 Configures bird2 with OSPF on all nodes, for the lowest latency between the servers.
 
+![data mining](https://i.pinimg.com/originals/48/9d/34/489d348abbc913f65f3637ab1f00ec73.gif)
+
 **Dependencies**<br />
 ```
 pip3 install netaddr
