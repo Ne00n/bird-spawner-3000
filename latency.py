@@ -16,12 +16,12 @@ class Latency:
 
     def getAvrg(self,row):
         result = 0
-        for index,entry in enumerate(row):
+        for entry in row:
             result += float(entry[0])
-        return int(float(result / 30) * 100)
+        return int(float(result / len(row)) * 100)
 
     def getLatency(self,config):
-        fping = ["fping", "-c", "30"]
+        fping = ["fping", "-c", "16"]
         for row in config:
             fping.append(row['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -32,7 +32,9 @@ class Latency:
                 latency[ip] = []
             latency[ip].append([ms,loss])
         for entry,row in latency.items():
+            del row[0] #drop the first ping result
             row.sort()
+            del row[len(row) -1] #drop the highest ping result
         for node in list(config):
             for entry,row in latency.items():
                 if entry == node['target']: node['latency'] = self.getAvrg(row)
@@ -40,38 +42,32 @@ class Latency:
 
 L = Latency()
 #Check if bird is running
+print("Checking bird/fping status")
 bird = L.cmd("pgrep bird")
 if bird[0] == "": raise ValueError('bird2 not running, exiting.')
 #Check if fping is running
 fping = L.cmd("pgrep fping")
 if fping[0] != "": raise ValueError('fping is running, exiting.')
 #Getting config
+print("Reading bird config")
 configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 #Parsing
 config = L.parse(configRaw)
 #fping
+print("Running fping")
 result = L.getLatency(config)
-#filter anything with less or equal than 200 = 2ms change
-count = 0
-while count < len(result):
-    entry = result[count]
-    if 'latency' not in entry or abs(int(entry['weight']) - int(entry['latency'])) <= 200:
-        print("Dropping",entry['nic'])
-        del result[count]
-    else:
-        count = count +1
 #update
 configs = L.cmd('ip addr show')
 local = re.findall("inet (10\.0[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
 configRaw = re.sub(local[0][0]+"; #updated [0-9]+", local[0][0]+"; #updated "+str(int(time.time())), configRaw, 0, re.MULTILINE)
 for entry in result:
     configRaw = re.sub("cost "+str(entry['weight'])+"; #"+entry['target'], "cost "+str(entry['latency'])+"; #"+entry['target'], configRaw, 0, re.MULTILINE)
-    print("Updating",entry['nic'])
 if not result:
     print("Nothing to do")
 else:
     #push
-    time.sleep(randint(10,120))
+    print("Waiting for deplayed update")
+    time.sleep(randint(10,60))
     print("Writing config")
     L.cmd("echo '"+configRaw+"' > /etc/bird/bird.conf")
     #reload
