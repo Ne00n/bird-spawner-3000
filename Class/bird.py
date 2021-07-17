@@ -12,6 +12,9 @@ class Bird:
     def cmd(self,cmd,server,ssh=True):
         cmd = 'ssh root@'+server+' "'+cmd+'"' if ssh else cmd
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        if p.returncode != 0:
+            print("Warning got returncode",p.returncode,"on",server)
+            print("Error:",p.stderr.decode('utf-8'))
         return [p.stdout.decode('utf-8'),p.stderr.decode('utf-8')]
 
     def resolve(self,ip,range,netmask):
@@ -64,12 +67,20 @@ class Bird:
                     data['latency'] = int(((float(row[0][0]) + float(row[1][0]) + float(row[2][0]) + float(row[3][0]) + float(row[4][0])) / 5) * 100)
                 elif data['target'] not in latency and nic in targets:
                     print(server,"Warning: cannot reach",data['target'],"skipping")
-                    print(server,"Restarting wireguard connection",data['target'])
                     route = self.cmd("ip route get "+data['target'],server)
                     interface = re.findall(".*?dev ([a-zA-Z0-9]+)",route[0], re.MULTILINE)
+                    target = interface[0].replace("pipe","").replace("Serv","").replace("v6","")
+                    print(server,"Restarting",interface[0],"on",server)
                     self.cmd("systemctl stop wg-quick@"+interface[0],server)
                     time.sleep(3)
                     self.cmd("systemctl start wg-quick@"+interface[0],server)
+                    service = "pipe"+server
+                    if "v6" in interface[0]: service = service+"v6"
+                    if "Serv" not in interface[0]: service = service+"Serv"
+                    print(server,"Restarting",service,"on",target)
+                    self.cmd("systemctl stop wg-quick@"+service,target)
+                    time.sleep(3)
+                    self.cmd("systemctl start wg-quick@"+service,target)
                     del targets[nic]
         if (len(targets) != len(latency)):
             print(server,"Warning: Targets do not match expected responses.")
