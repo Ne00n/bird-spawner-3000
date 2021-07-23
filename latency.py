@@ -37,7 +37,13 @@ class Latency:
             del row[len(row) -1] #drop the highest ping result
         for node in list(config):
             for entry,row in latency.items():
-                if entry == node['target']: node['latency'] = self.getAvrg(row)
+                if entry == node['target']:
+                    node['latency'] = self.getAvrg(row)
+                    if len(row) < 13:
+                        print(entry,"Packetloss detected","got",len(row),"of 13")
+                        node['latency'] = node['latency'] + 1000
+                        print(entry,"Added 10ms penalty")
+
         return config
 
 L = Latency()
