@@ -60,6 +60,7 @@ class Bird:
                 latency[ip] = []
             latency[ip].append([ms,loss])
         for entry,row in latency.items():
+            row = row[5:] #drop the first 5 pings
             row.sort()
         for nic,data in list(targets.items()):
             for entry,row in latency.items():
