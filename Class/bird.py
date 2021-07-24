@@ -24,6 +24,12 @@ class Bird:
         netmaskDecimal = ~ wildcardDecimal
         return ( ( ipDecimal & netmaskDecimal ) == ( rangeDecimal & netmaskDecimal ) );
 
+    def getAvrg(self,row):
+        result = 0
+        for entry in row:
+            result += float(entry[0])
+        return int(float(result / len(row)) * 100)
+
     def genTargets(self,links):
         result = {}
         for link in links:
@@ -65,7 +71,8 @@ class Bird:
         for nic,data in list(targets.items()):
             for entry,row in latency.items():
                 if entry == data['target']:
-                    data['latency'] = int(((float(row[0][0]) + float(row[1][0]) + float(row[2][0]) + float(row[3][0]) + float(row[4][0])) / 5) * 100)
+                    if len(row) < 10: print("Warning, expected 10 pings, got",len(row),"from",data['target'],"possible Packetloss")
+                    data['latency'] = self.getAvrg(row)
                 elif data['target'] not in latency and nic in targets:
                     print(server,"Warning: cannot reach",data['target'],"skipping")
                     route = self.cmd("ip route get "+data['target'],server)
