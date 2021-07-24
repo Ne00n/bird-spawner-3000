@@ -14,11 +14,21 @@ class Latency:
             data.append({'nic':nic,'target':target,'weight':weight})
         return data
 
-    def getAvrg(self,row):
+    def getAvrg(self,row,weight=False):
         result = 0
         for entry in row:
             result += float(entry[0])
-        return int(float(result / len(row)) * 100)
+        if weight: return int(float(result / len(row)))
+        else: return int(float(result / len(row)) * 100)
+
+    def hasJitter(self,row,avrg):
+        if avrg > 300: grace = 25
+        elif avrg > 200: grace = 20
+        elif avrg > 100: grace = 15
+        else: grace = 10
+        for entry in row:
+            if float(entry[0]) > avrg + grace: return True
+        return False
 
     def getLatency(self,config):
         fping = ["fping", "-c", "16"]
@@ -40,9 +50,11 @@ class Latency:
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
                     if len(row) < 13:
-                        print(entry,"Packetloss detected","got",len(row),"of 13")
+                        print(entry,"Packetloss detected","got",len(row),"of 13, adding penalty")
                         node['latency'] = node['latency'] + 1000
-                        print(entry,"Added 10ms penalty")
+                    if self.hasJitter(row,self.getAvrg(row,True)):
+                        print(entry,"High Jitter dectected, adding penalty")
+                        node['latency'] = node['latency'] + 1000
 
         return config
 
