@@ -1,8 +1,22 @@
 #!/usr/bin/python3
 import subprocess, json, time, re
+from datetime import datetime
 from random import randint
+from pathlib import Path
 
 class Latency:
+    def __init__(self):
+        if Path("peering.json").exists():
+            print("Loading","peering.json")
+            with open("peering.json") as handle:
+                self.peering = json.loads(handle.read())
+        else:
+            self.peering = {}
+
+    def save(self):
+        with open("peering.json", 'w') as f:
+            json.dump(self.peering, f)
+
     def cmd(self,cmd):
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         return [p.stdout.decode('utf-8'),p.stderr.decode('utf-8')]
@@ -49,12 +63,17 @@ class Latency:
             for entry,row in latency.items():
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if len(row) < 13:
+                    if entry not in self.peering: self.peering[entry] = {"packetloss":0,"jitter":0}
+
+                    if self.peering[entry]['packetloss'] > int(datetime.now().timestamp()) or len(row) < 13:
                         print(entry,"Packetloss detected","got",len(row),"of 13, adding penalty")
-                        node['latency'] = node['latency'] + 1000
-                    if self.hasJitter(row,self.getAvrg(row,True)):
+                        node['latency'] = node['latency'] + 6000
+                        self.peering[entry]['packetloss'] = int(datetime.now().timestamp()) + 1800
+
+                    if self.peering[entry]['jitter'] > int(datetime.now().timestamp()) or self.hasJitter(row,self.getAvrg(row,True)):
                         print(entry,"High Jitter dectected, adding penalty")
                         node['latency'] = node['latency'] + 1000
+                        self.peering[entry]['jitter'] = int(datetime.now().timestamp()) + 1800
 
         return config
 
@@ -91,3 +110,5 @@ else:
     #reload
     print("Reloading bird")
     L.cmd('service bird reload')
+print("Saving","peering.json")
+L.save()
