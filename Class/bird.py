@@ -71,7 +71,7 @@ class Bird:
         for nic,data in list(targets.items()):
             for entry,row in latency.items():
                 if entry == data['target']:
-                    if len(row) < 10: print("Warning, expected 10 pings, got",len(row),"from",data['target'],"possible Packetloss")
+                    if len(row) < 10: print(server,"Warning, expected 10 pings, got",len(row),"from",data['target'],"possible Packetloss")
                     data['latency'] = self.getAvrg(row)
                 elif data['target'] not in latency and nic in targets:
                     print(server,"Warning: cannot reach",data['target'],"skipping")
