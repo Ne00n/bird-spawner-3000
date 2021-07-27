@@ -94,6 +94,13 @@ class Bird:
             print(server,"Warning: Targets do not match expected responses.")
         return targets
 
+    def update(self,):
+        print("Launching")
+        for server in self.targets['servers']:
+            print(server,"Updating latency.py")
+            self.cmd('scp latency.py root@'+server+':/root/','',False)
+            self.cmd('chmod +x /root/latency.py',server)
+
     def shutdown(self):
         for server in self.targets['servers']:
             print("---",server,"---")
