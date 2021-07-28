@@ -52,8 +52,7 @@ class Latency:
         parsed = re.findall("([0-9.]+).*?([0-9]+.[0-9]).*?([0-9])% loss",result.stdout.decode('utf-8'), re.MULTILINE)
         latency =  {}
         for ip,ms,loss in parsed:
-            if ip not in latency:
-                latency[ip] = []
+            if ip not in latency: latency[ip] = []
             latency[ip].append([ms,loss])
         for entry,row in latency.items():
             del row[0] #drop the first ping result
@@ -98,6 +97,7 @@ configs = L.cmd('ip addr show')
 local = re.findall("inet (10\.0[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
 configRaw = re.sub(local[0][0]+"; #updated [0-9]+", local[0][0]+"; #updated "+str(int(time.time())), configRaw, 0, re.MULTILINE)
 for entry in result:
+    if "latency" not in entry: entry['latency'] = 65000
     configRaw = re.sub("cost "+str(entry['weight'])+"; #"+entry['target'], "cost "+str(entry['latency'])+"; #"+entry['target'], configRaw, 0, re.MULTILINE)
 if not result:
     print("Nothing to do")
