@@ -15,7 +15,7 @@ class Latency:
 
     def save(self):
         with open("peering.json", 'w') as f:
-            json.dump(self.peering, f)
+            json.dump(self.peering, f, indent=4)
 
     def cmd(self,cmd):
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
