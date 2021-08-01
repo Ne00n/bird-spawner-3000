@@ -64,15 +64,25 @@ class Latency:
                     node['latency'] = self.getAvrg(row)
                     if entry not in self.peering: self.peering[entry] = {"packetloss":0,"jitter":0}
 
-                    if self.peering[entry]['packetloss'] > int(datetime.now().timestamp()) or len(row) < 13:
-                        print(entry,"Packetloss detected","got",len(row),"of 13, adding penalty")
-                        node['latency'] = node['latency'] + 6000
-                        self.peering[entry]['packetloss'] = int(datetime.now().timestamp()) + 1800
+                    hadLoss = self.peering[entry]['packetloss'] > int(datetime.now().timestamp())
+                    hasLoss = len(row) < 13
 
-                    if self.peering[entry]['jitter'] > int(datetime.now().timestamp()) or self.hasJitter(row,self.getAvrg(row,True)):
-                        print(entry,"High Jitter dectected, adding penalty")
+                    if hadLoss or hasLoss:
+                        if hasLoss:
+                            self.peering[entry]['packetloss'] = int(datetime.now().timestamp()) + 1800
+                            print(entry,"Packetloss detected","got",len(row),"of 13, adding penalty")
+                        if hadLoss: print(entry,"Ongoing Packetloss")
+                        node['latency'] = node['latency'] + 6000
+
+                    hasJitter = self.hasJitter(row,self.getAvrg(row,True))
+                    hadJitter = self.peering[entry]['jitter'] > int(datetime.now().timestamp())
+
+                    if hadJitter or hasJitter:
+                        if hasJitter:
+                            self.peering[entry]['jitter'] = int(datetime.now().timestamp()) + 1800
+                            print(entry,"High Jitter dectected, adding penalty")
+                        if hadJitter: print(entry,"Ongoing Jitter")
                         node['latency'] = node['latency'] + 1000
-                        self.peering[entry]['jitter'] = int(datetime.now().timestamp()) + 1800
 
         return config
 
