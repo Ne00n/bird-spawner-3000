@@ -96,7 +96,7 @@ for run in range(3):
     fping = L.cmd("pgrep fping")
     if fping[0] == "": break
     if run == 2: raise Exception('fping is running, exiting.')
-    time.sleep(randint(5, 15))
+    time.sleep(randint(10, 20))
 #Getting config
 print("Reading bird config")
 configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
