@@ -90,10 +90,13 @@ L = Latency()
 #Check if bird is running
 print("Checking bird/fping status")
 bird = L.cmd("pgrep bird")
-if bird[0] == "": raise ValueError('bird2 not running, exiting.')
+if bird[0] == "": raise Exception('bird2 not running, exiting.')
 #Check if fping is running
-fping = L.cmd("pgrep fping")
-if fping[0] != "": raise ValueError('fping is running, exiting.')
+for run in range(3):
+    fping = L.cmd("pgrep fping")
+    if fping[0] == "": break
+    if run == 2: raise Exception('fping is running, exiting.')
+    time.sleep(randint(5, 15))
 #Getting config
 print("Reading bird config")
 configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
