@@ -122,6 +122,6 @@ else:
     L.cmd("echo '"+configRaw+"' > /etc/bird/bird.conf")
     #reload
     print("Reloading bird")
-    L.cmd('service bird reload')
+    L.cmd('/usr/sbin/service bird reload')
 print("Saving","peering.json")
 L.save()
