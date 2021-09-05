@@ -78,6 +78,9 @@ class Bird:
                     route = self.cmd("ip route get "+data['target'],server)
                     interface = re.findall(".*?dev ([a-zA-Z0-9]+)",route[0], re.MULTILINE)
                     target = interface[0].replace("pipe","").replace("Serv","").replace("v6","")
+                    if "dummy" in interface[0]:
+                        del targets[nic]
+                        continue
                     print(server,"Restarting",interface[0],"on",server)
                     self.cmd("systemctl stop wg-quick@"+interface[0],server)
                     time.sleep(3)
