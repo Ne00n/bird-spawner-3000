@@ -1,4 +1,4 @@
-import subprocess, netaddr, time, json, re
+import subprocess, netaddr, random, time, json, re
 from Class.templator import Templator
 from threading import Thread
 
@@ -9,13 +9,19 @@ class Bird:
             self.targets = json.loads(handle.read())
         self.templator = Templator()
 
-    def cmd(self,cmd,server,ssh=True):
-        cmd = 'ssh root@'+server+' "'+cmd+'"' if ssh else cmd
-        p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        if p.returncode != 0:
-            print("Warning got returncode",p.returncode,"on",server)
-            print("Error:",p.stderr.decode('utf-8'))
-        return [p.stdout.decode('utf-8'),p.stderr.decode('utf-8')]
+    def cmd(self,command,server):
+        cmd = ['ssh','root@'+server,command]
+        for run in range(4):
+            try:
+                p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+                if p.returncode != 0:
+                    print("Warning got returncode",p.returncode,"on",server)
+                    print("Error:",p.stderr.decode('utf-8'))
+                if p.returncode != 255: return [p.stdout.decode('utf-8'),p.stderr.decode('utf-8')]
+            except Exception as e:
+                print("Error:",e)
+            print("Retrying",cmd,"on",server)
+            time.sleep(random.randint(5, 15))
 
     def resolve(self,ip,range,netmask):
         rangeDecimal = int(netaddr.IPAddress(range))
