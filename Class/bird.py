@@ -10,10 +10,10 @@ class Bird:
         self.templator = Templator()
 
     def cmd(self,cmd,server,ssh=True):
-        cmd = ['ssh','root@'+server,cmd] if ssh else cmd.split(" ")
+        cmd = 'ssh root@'+server+' "'+cmd+'"' if ssh else cmd
         for run in range(4):
             try:
-                p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+                p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True ,timeout=60)
                 if p.returncode != 0:
                     print("Warning got returncode",p.returncode,"on",server)
                     print("Error:",p.stderr.decode('utf-8'))
