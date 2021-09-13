@@ -9,8 +9,8 @@ class Bird:
             self.targets = json.loads(handle.read())
         self.templator = Templator()
 
-    def cmd(self,command,server):
-        cmd = ['ssh','root@'+server,command]
+    def cmd(self,cmd,server,ssh=True):
+        cmd = ['ssh','root@'+server,cmd] if ssh else cmd.split(" ")
         for run in range(4):
             try:
                 p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
