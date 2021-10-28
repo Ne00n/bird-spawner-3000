@@ -1,21 +1,32 @@
 #!/usr/bin/python3
-import subprocess, json, time, re
+import subprocess, json, time, sys, re
 from datetime import datetime
 from random import randint
 from pathlib import Path
 
 class Latency:
     def __init__(self):
-        if Path("peering.json").exists():
-            print("Loading","peering.json")
-            with open("peering.json") as handle:
-                self.peering = json.loads(handle.read())
-        else:
-            self.peering = {}
+        self.files = {"peering.json":{},'longtime.json':{}}
+        self.long,self.file = False,"peering.json"
+        if len(sys.argv) == 2 and sys.argv[1] == "longtime":
+            self.file = "longtime.json"
+            self.long = True
+        files = ["peering.json","longtime.json"]
+        for file in files:
+            if Path(file).exists():
+                print("Loading",file)
+                with open(file) as handle:
+                    self.files[file] = json.loads(handle.read())
+            else:
+                self.files[file] = {}
+
+    def isLongtime(self):
+        return self.long
 
     def save(self):
-        with open("peering.json", 'w') as f:
-            json.dump(self.peering, f, indent=4)
+        print(f"Saving {self.file}")
+        with open(self.file, 'w') as f:
+            json.dump(self.files[self.file], f, indent=4)
 
     def cmd(self,cmd):
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -60,24 +71,24 @@ class Latency:
             for entry,row in latency.items():
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if entry not in self.peering: self.peering[entry] = {"packetloss":0,"jitter":0}
+                    if entry not in self.files[self.file]: self.files[self.file][entry] = {"packetloss":0,"jitter":0}
 
-                    hadLoss = self.peering[entry]['packetloss'] > int(datetime.now().timestamp())
+                    hadLoss = self.files[self.file][entry]['packetloss'] > int(datetime.now().timestamp())
                     hasLoss = len(row) < pings -1
 
                     if hadLoss or hasLoss:
                         if hasLoss:
-                            self.peering[entry]['packetloss'] = int(datetime.now().timestamp()) + 1800
-                            print(entry,"Packetloss detected","got",len(row),"of 13, adding penalty")
+                            self.files[self.file][entry]['packetloss'] = int(datetime.now().timestamp()) + 1800
+                            print(entry,"Packetloss detected","got",len(row),f"of {pings -1}, adding penalty")
                         if hadLoss: print(entry,"Ongoing Packetloss")
                         node['latency'] = node['latency'] + 6000
 
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
-                    hadJitter = self.peering[entry]['jitter'] > int(datetime.now().timestamp())
+                    hadJitter = self.files[self.file][entry]['jitter'] > int(datetime.now().timestamp())
 
                     if hadJitter or hasJitter:
                         if hasJitter:
-                            self.peering[entry]['jitter'] = int(datetime.now().timestamp()) + 1800
+                            self.files[self.file][entry]['jitter'] = int(datetime.now().timestamp()) + 1800
                             print(entry,"High Jitter dectected, adding penalty")
                         if hadJitter: print(entry,"Ongoing Jitter")
                         node['latency'] = node['latency'] + 1000
@@ -104,7 +115,10 @@ print("Waiting for deplayed fping")
 time.sleep(randint(2,30))
 #fping
 print("Running fping")
-result = L.getLatency(config)
+if L.isLongtime():
+    result = L.getLatency(config,300)
+else:
+    result = L.getLatency(config)
 #update
 configs = L.cmd('ip addr show')
 local = re.findall("inet (10\.0[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
@@ -123,5 +137,4 @@ else:
     #reload
     print("Reloading bird")
     L.cmd('/usr/sbin/service bird reload')
-print("Saving","peering.json")
 L.save()
