@@ -42,8 +42,8 @@ class Latency:
             if float(entry[0]) > avrg + grace: return True
         return False
 
-    def getLatency(self,config):
-        fping = ["fping", "-c", "5"]
+    def getLatency(self,config,pings=5):
+        fping = ["fping", "-c", str(pings)]
         for row in config:
             fping.append(row['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -63,7 +63,7 @@ class Latency:
                     if entry not in self.peering: self.peering[entry] = {"packetloss":0,"jitter":0}
 
                     hadLoss = self.peering[entry]['packetloss'] > int(datetime.now().timestamp())
-                    hasLoss = len(row) < 4
+                    hasLoss = len(row) < pings -1
 
                     if hadLoss or hasLoss:
                         if hasLoss:
