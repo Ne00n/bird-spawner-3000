@@ -36,16 +36,14 @@ class Latency:
         else: return int(float(result / len(row)) * 100)
 
     def hasJitter(self,row,avrg):
-        if avrg > 300: grace = 25
-        elif avrg > 200: grace = 20
-        elif avrg > 100: grace = 15
-        else: grace = 10
+        grace = 10
+        if avrg < 10: grace = 5
         for entry in row:
             if float(entry[0]) > avrg + grace: return True
         return False
 
     def getLatency(self,config):
-        fping = ["fping", "-c", "16"]
+        fping = ["fping", "-c", "5"]
         for row in config:
             fping.append(row['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -57,7 +55,7 @@ class Latency:
         for entry,row in latency.items():
             del row[0] #drop the first ping result
             row.sort()
-            del row[len(row) -1] #drop the highest ping result
+            #del row[len(row) -1] #drop the highest ping result
         for node in list(config):
             for entry,row in latency.items():
                 if entry == node['target']:
@@ -65,7 +63,7 @@ class Latency:
                     if entry not in self.peering: self.peering[entry] = {"packetloss":0,"jitter":0}
 
                     hadLoss = self.peering[entry]['packetloss'] > int(datetime.now().timestamp())
-                    hasLoss = len(row) < 13
+                    hasLoss = len(row) < 4
 
                     if hadLoss or hasLoss:
                         if hasLoss:
@@ -102,6 +100,8 @@ print("Reading bird config")
 configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 #Parsing
 config = L.parse(configRaw)
+print("Waiting for deplayed fping")
+time.sleep(randint(2,30))
 #fping
 print("Running fping")
 result = L.getLatency(config)
@@ -117,7 +117,7 @@ if not result:
 else:
     #push
     print("Waiting for deplayed update")
-    time.sleep(randint(10,60))
+    time.sleep(randint(5,40))
     print("Writing config")
     L.cmd("echo '"+configRaw+"' > /etc/bird/bird.conf")
     #reload
