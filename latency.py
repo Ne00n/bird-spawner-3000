@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import subprocess, json, time, sys, re
+import subprocess, datetime, json, time, sys, re
 from datetime import datetime
 from random import randint
 from pathlib import Path
@@ -8,7 +8,7 @@ class Latency:
     def __init__(self):
         self.files = {"peering.json":{},'longtime.json':{}}
         self.long,self.file = False,"peering.json"
-        if len(sys.argv) == 2 and sys.argv[1] == "longtime":
+        if len(sys.argv) == 2 and sys.argv[1] == "longtime" or datetime.now().minute == 0:
             self.file = "longtime.json"
             self.long = True
         files = ["peering.json","longtime.json"]
