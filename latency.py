@@ -85,10 +85,16 @@ class Latency:
 
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
                     hadJitter = self.files[self.file][entry]['jitter'] > int(datetime.now().timestamp())
+                    hadJitterLong = False
+                    if self.files['longtime.json']:
+                        hadJitterLong = self.files['longtime.json'][entry]['jitter'] > int(datetime.now().timestamp())
 
-                    if hadJitter or hasJitter:
+                    if hadJitter or hasJitter or hadJitterLong:
                         if hasJitter:
-                            self.files[self.file][entry]['jitter'] = int(datetime.now().timestamp()) + 1800
+                            if self.isLongtime():
+                                self.files[self.file][entry]['jitter'] = int(datetime.now().timestamp()) + 3600
+                            else:
+                                self.files[self.file][entry]['jitter'] = int(datetime.now().timestamp()) + 1800
                             print(entry,"High Jitter dectected, adding penalty")
                         if hadJitter: print(entry,"Ongoing Jitter")
                         node['latency'] = node['latency'] + 1000
