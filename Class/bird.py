@@ -142,13 +142,13 @@ class Bird:
             cron = self.cmd("crontab -u root -l",server)
             if cron[0] == '':
                 print(server,"Creating cronjob")
-                self.cmd('echo \\"*/2 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
+                self.cmd('echo \\"*/1 * * * *  /root/latency.py > /dev/null 2>&1\\" | crontab -u root -',server)
             else:
                 if "/root/latency.py" in cron[0]:
                     print(server,"Cronjob already exists")
                 else:
                     print(server,"Adding cronjob")
-                    self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/2 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
+                    self.cmd('crontab -u root -l 2>/dev/null | { cat; echo \\"*/1 * * * *  /root/latency.py > /dev/null 2>&1\\"; } | crontab -u root -',server)
         else:
             self.cmd("crontab -u root -l | grep -v '/root/latency.py'  | crontab -u root -",server)
         print(server,"done")
