@@ -81,8 +81,7 @@ class Latency:
         else: return int(float(result / len(row)) * 100)
 
     def hasJitter(self,row,avrg):
-        grace = 10
-        if avrg < 10: grace = 5
+        grace = 20
         for entry in row:
             if float(entry[0]) > avrg + grace: return True
         return False
