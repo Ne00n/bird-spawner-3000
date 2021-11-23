@@ -86,7 +86,7 @@ class Latency:
             if float(entry[0]) > avrg + grace: return True
         return False
 
-    def getLatency(self,config,pings=5):
+    def getLatency(self,config,pings=6):
         fping = ["fping", "-c", str(pings)]
         for row in config:
             fping.append(row['target'])
