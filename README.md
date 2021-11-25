@@ -11,8 +11,6 @@ pip3 install netaddr
 apt-get install bird2 python3 fping -y
 ```
 
-Getting bird2: https://packages.sury.org/bird/README.txt
-
 **Prepare**<br />
 Rename hosts.example.json to hosts.json and fill it up
 
