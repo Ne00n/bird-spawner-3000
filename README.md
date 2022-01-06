@@ -23,10 +23,21 @@ bla.bla.bla.bla    Server2
 bla.bla.bla.bla    Server3
 ```
 
+**Notes**<br>
+If you got a unstable ADSL/VDSL/Cable... line it may backfire, if the script detects either packetloss or jitter.<br>
+This will add a penalty to the specific link, which in general is used to avoid bad routes.<br>
+
+Ping spikes or packetloss are a killer for online gaming, so a must to keep it enabled.<br>
+Any ping or packetloss penalty will be removed automatically after 30 minutes, if resolved. <br>
+
 **Usage**<br />
 Configures/Updates bird2
 ```
 python3 bird.py build
+```
+Configures/Updates bird2 with consistent latency optimization
+```
+python3 bird.py build yes
 ```
 Shutdown of all bird instances
 ```
