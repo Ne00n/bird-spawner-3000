@@ -54,7 +54,7 @@ class Bird:
 
     def getLatency(self,server,targets):
         print(server,"Getting latency from all targets")
-        fping = ['ssh','root@'+server,"fping", "-c", "15"]
+        fping = ['ssh','root@'+server,"fping", "-c", "30"]
         for nic,data in targets.items():
             fping.append(data['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -67,12 +67,13 @@ class Bird:
             result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         parsed = re.findall("([0-9.]+).*?([0-9]+.[0-9]).*?([0-9])% loss",result.stdout.decode('utf-8'), re.MULTILINE)
         latency =  {}
+        print(server,"Processing responses")
         for ip,ms,loss in parsed:
             if ip not in latency:
                 latency[ip] = []
             latency[ip].append([ms,loss])
         for entry,row in latency.items():
-            row = row[5:] #drop the first 5 pings
+            row = row[20:] #drop the first 20 pings
             row.sort()
         for nic,data in list(targets.items()):
             for entry,row in latency.items():
@@ -81,26 +82,9 @@ class Bird:
                     data['latency'] = self.getAvrg(row)
                 elif data['target'] not in latency and nic in targets:
                     print(server,"Warning: cannot reach",data['target'],"skipping")
-                    route = self.cmd("ip route get "+data['target'],server)
-                    interface = re.findall(".*?dev ([a-zA-Z0-9]+)",route[0], re.MULTILINE)
-                    target = interface[0].replace("pipe","").replace("Serv","").replace("v6","")
-                    if "dummy" in interface[0]:
-                        del targets[nic]
-                        continue
-                    print(server,"Restarting",interface[0],"on",server)
-                    self.cmd("systemctl stop wg-quick@"+interface[0],server)
-                    time.sleep(3)
-                    self.cmd("systemctl start wg-quick@"+interface[0],server)
-                    service = "pipe"+server
-                    if "v6" in interface[0]: service = service+"v6"
-                    if "Serv" not in interface[0]: service = service+"Serv"
-                    print(server,"Restarting",service,"on",target)
-                    self.cmd("systemctl stop wg-quick@"+service,target)
-                    time.sleep(3)
-                    self.cmd("systemctl start wg-quick@"+service,target)
                     del targets[nic]
         if (len(targets) != len(latency)):
-            print(server,"Warning: Targets do not match expected responses.")
+            print(server,"Warning: Targets do not match expected responses. This can be ignored on the last machine.")
         return targets
 
     def update(self,):
