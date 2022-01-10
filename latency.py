@@ -7,14 +7,12 @@ from pathlib import Path
 
 class Latency:
     def __init__(self):
-        self.files = {"peering.json":{},'longtime.json':{},'traffic.json':{}}
-        cron = [2,18,32,48]
-        self.long,self.file = False,"peering.json"
+        self.configFiles,cron = ['traffic.json','events.json','peering.json','longtime.json'],[2,18,32,48]
+        self.long,self.file,self.files = False,"peering.json",{}
         if len(sys.argv) == 2 and sys.argv[1] == "longtime" or datetime.now().minute in cron:
             self.file = "longtime.json"
             self.long = True
-        files = ["peering.json","longtime.json",'traffic.json']
-        for file in files:
+        for file in self.configFiles:
             if Path(file).exists():
                 print("Loading",file)
                 with open(file) as handle:
@@ -26,12 +24,10 @@ class Latency:
         return self.long
 
     def save(self):
-        print(f"Saving {self.file}")
-        with open(self.file, 'w') as f:
-            json.dump(self.files[self.file], f, indent=4)
-        print("Saving traffic.json")
-        with open("traffic.json", 'w') as f:
-            json.dump(self.files["traffic.json"], f, indent=4)
+        for file in self.configFiles:
+            print(f"Saving {file}")
+            with open(file, 'w') as f:
+                json.dump(self.files[file], f, indent=4)
 
     def cmd(self,cmd):
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -100,38 +96,51 @@ class Latency:
             del row[0] #drop the first ping result
             row.sort()
             #del row[len(row) -1] #drop the highest ping result
+        current = int(datetime.now().timestamp())
+        tempFile = self.files
+        total,loss,jittar = 0,0,0
         for node in list(config):
             for entry,row in latency.items():
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if entry not in self.files[self.file]: self.files[self.file][entry] = {"packetloss":0,"jitter":0}
+                    if entry not in tempFile[self.file]: tempFile[self.file][entry] = {"packetloss":0,"jitter":0}
+                    if node['nic'] not in tempFile['events.json']: tempFile['events.json'][node['nic']] = {"events":{"jitter":[]}} 
 
-                    hadLoss = self.files[self.file][entry]['packetloss'] > int(datetime.now().timestamp())
+                    hadLossLong = tempFile['longtime.json'][entry]['packetloss'] > current
+                    hadLoss = tempFile['peering.json'][entry]['packetloss'] > current
                     hasLoss = len(row) < pings -1
 
-                    if hadLoss or hasLoss:
-                        if hasLoss:
-                            self.files[self.file][entry]['packetloss'] = int(datetime.now().timestamp()) + 1800
-                            print(entry,"Packetloss detected","got",len(row),f"of {pings -1}, adding penalty")
-                        if hadLoss: print(entry,"Ongoing Packetloss")
-                        node['latency'] = node['latency'] + 6000
+                    if hasLoss or hadLoss or hadLossLong:
+                        node['latency'] = node['latency'] + 5000 #+ 50ms / weight
+                        loss = loss +1
 
+                    if hasLoss:
+                        tempFile[self.file][entry]['packetloss'] = current + 1800 #update event
+                        print(entry,"Packetloss detected","got",len(row),f"of {pings -1}, adding penalty")
+                    elif hadLoss or hadLossLong:
+                        print(entry,"Ongoing Packetloss")
+
+                    hadJitterLong = tempFile['longtime.json'][entry]['jitter'] > current
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
-                    hadJitter = self.files[self.file][entry]['jitter'] > int(datetime.now().timestamp())
-                    hadJitterLong = False
-                    if self.files['longtime.json']:
-                        hadJitterLong = self.files['longtime.json'][entry]['jitter'] > int(datetime.now().timestamp())
+                    hadJitter = tempFile['peering.json'][entry]['jitter'] > current
 
-                    if hadJitter or hasJitter or hadJitterLong:
-                        if hasJitter:
-                            if self.isLongtime():
-                                self.files[self.file][entry]['jitter'] = int(datetime.now().timestamp()) + 3600
-                            else:
-                                self.files[self.file][entry]['jitter'] = int(datetime.now().timestamp()) + 1800
-                            print(entry,"High Jitter dectected, adding penalty")
-                        if hadJitter: print(entry,"Ongoing Jitter")
-                        node['latency'] = node['latency'] + 1000
+                    if hasJitter or hadJitter or hadJitterLong:
+                        node['latency'] = node['latency'] + 1000 #+ 10ms /weight
+                        jittar = jittar +1
 
+                    if hasJitter:
+                        extend = 3600 if self.isLongtime() else 1800
+                        tempFile[self.file][entry]['jitter'] = current + extend #update event
+                        tempFile['events.json'][node['nic']]['events']['jitter'].append(current)
+                        print(entry,"High Jitter dectected, adding penalty")
+                    elif hadJitter or hadJitterLong:
+                        print(entry,"Ongoing Jitter")
+                    total = total +1
+
+        print (f"Total {total}, Jitter {jittar}, Packetloss {loss}")
+        #If we detect more than 50% of our links have either packetloss or jitter ignore it
+        if loss < (total / 2) or jittar < (total / 2):     
+            self.files = tempFile
         return config
 
 L = Latency()
