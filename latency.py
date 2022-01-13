@@ -7,7 +7,7 @@ from pathlib import Path
 
 class Latency:
     def __init__(self):
-        self.configFiles,cron = ['traffic.json','events.json','peering.json','longtime.json'],[2,18,32,48]
+        self.configFiles,cron = ['events.json','peering.json','longtime.json'],[5,15,25,35,45,55]
         self.long,self.file,self.files = False,"peering.json",{}
         if len(sys.argv) == 2 and sys.argv[1] == "longtime" or datetime.now().minute in cron:
             self.file = "longtime.json"
@@ -44,30 +44,6 @@ class Latency:
         for nic,target,weight in parsed:
             data.append({'nic':nic,'target':target,'weight':weight})
         return data
-
-    def filter(self,config):
-        traffic = L.cmd('ifconfig')
-        data = re.findall("inet\s([0-9.]+).*?bytes\s([0-9]+)",traffic[0], re.MULTILINE | re.DOTALL)
-        diff = {}
-        for row in data:
-            if self.files["traffic.json"]:
-                for ip,traffic in self.files["traffic.json"].items():
-                    if row[0] == ip:
-                        diff[ip] = int(row[1]) - int(traffic)
-                        break
-            self.files['traffic.json'][row[0]] = row[1]
-
-        if datetime.now().minute % 2 != 0:
-            print("Filtering Config")
-            for ip,bytes in diff.items():
-                if bytes < 500000:
-                    for row in list(config):
-                        if self.sameNetwork(f"{ip}/31",f"{row['target']}/31"):
-                            print(f"Dropping {row['target']} due to low traffic")
-                            del row
-        else:
-            print("Skipping Filtering Config")
-        return config
 
     def getAvrg(self,row,weight=False):
         result = 0
@@ -129,7 +105,7 @@ class Latency:
                         jittar = jittar +1
 
                     if hasJitter:
-                        extend = 3600 if self.isLongtime() else 1800
+                        extend = 3600 if self.isLongtime() else 900
                         tempFile[self.file][entry]['jitter'] = current + extend #update event
                         tempFile['events.json'][node['nic']]['events']['jitter'].append(current)
                         print(entry,"High Jitter dectected, adding penalty")
@@ -139,7 +115,7 @@ class Latency:
 
         print (f"Total {total}, Jitter {jittar}, Packetloss {loss}")
         #If we detect more than 50% of our links have either packetloss or jitter ignore it
-        if loss < (total / 2) or jittar < (total / 2):     
+        if loss < (total / 2) and jittar < (total / 2):     
             self.files = tempFile
         return config
 
@@ -161,8 +137,6 @@ configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 config = L.parse(configRaw)
 print("Waiting for deplayed fping")
 time.sleep(randint(2,20))
-#Filter Config
-config = L.filter(config)
 #fping
 print("Running fping")
 if L.isLongtime():
