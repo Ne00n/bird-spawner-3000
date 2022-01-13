@@ -79,7 +79,9 @@ class Latency:
             for entry,row in latency.items():
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if entry not in tempFile[self.file]: tempFile[self.file][entry] = {"packetloss":0,"jitter":0}
+                    if entry not in tempFile['longtime.json']: tempFile['longtime.json'][entry] = {"packetloss":0,"jitter":0}
+                    if entry not in tempFile['peering.json']: tempFile['peering.json'][entry] = {"packetloss":0,"jitter":0}
+
                     if node['nic'] not in tempFile['events.json']: tempFile['events.json'][node['nic']] = {"events":{"jitter":[]}} 
 
                     hadLossLong = tempFile['longtime.json'][entry]['packetloss'] > current
