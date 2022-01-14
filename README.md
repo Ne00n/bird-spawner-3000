@@ -30,6 +30,8 @@ This will add a penalty to the specific link, which in general is used to avoid 
 Ping spikes or packetloss are a killer for online gaming, so a must to keep it enabled.<br>
 Any ping or packetloss penalty will be removed automatically after 30 minutes, if resolved. <br>
 
+If you are using Docker on the Node itself check https://docs.docker.com/network/iptables/ (Docker on a Router)
+
 **Usage**<br />
 Configures/Updates bird2
 ```
