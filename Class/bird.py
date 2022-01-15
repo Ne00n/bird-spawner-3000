@@ -94,6 +94,16 @@ class Bird:
             self.cmd('scp latency.py root@'+server+':/root/','',False)
             self.cmd('chmod +x /root/latency.py',server)
 
+    def restart(self):
+        self.shutdown()
+        self.startup()
+
+    def startup(self):
+        for server in self.targets['servers']:
+            print("---",server,"---")
+            print("Starting bird")
+            self.cmd('service bird start',server)
+
     def shutdown(self):
         for server in self.targets['servers']:
             print("---",server,"---")
