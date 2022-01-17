@@ -116,9 +116,6 @@ class Latency:
                     total = total +1
 
         print (f"Total {total}, Jitter {jittar}, Packetloss {loss}")
-        #If we detect more than 50% of our links have either packetloss or jitter ignore it
-        if loss < (total / 2) and jittar < (total / 2):     
-            self.files = tempFile
         return config
 
 L = Latency()
@@ -137,8 +134,6 @@ print("Reading bird config")
 configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
 #Parsing
 config = L.parse(configRaw)
-print("Waiting for deplayed fping")
-time.sleep(randint(2,20))
 #fping
 print("Running fping")
 if L.isLongtime():
