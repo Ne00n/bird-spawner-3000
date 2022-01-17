@@ -45,10 +45,6 @@ protocol kernel {
 	};
 }
 
-protocol kernel {
-	ipv6 { export all; };
-}
-
 include "bgp.conf";
 
 filter export_OSPF {
