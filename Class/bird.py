@@ -54,7 +54,7 @@ class Bird:
 
     def getLatency(self,server,targets):
         print(server,"Getting latency from all targets")
-        fping = ['ssh','root@'+server,"fping", "-c", "30"]
+        fping = ['ssh','root@'+server,"fping", "-c", "120"]
         for nic,data in targets.items():
             fping.append(data['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
