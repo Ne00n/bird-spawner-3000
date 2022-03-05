@@ -15,8 +15,11 @@ class Latency:
         for file in self.configFiles:
             if Path(file).exists():
                 print("Loading",file)
-                with open(file) as handle:
-                    self.files[file] = json.loads(handle.read())
+                try:
+                    with open(file) as handle:
+                        self.files[file] = json.loads(handle.read())
+                except:
+                    self.files[file] = {}
             else:
                 self.files[file] = {}
 
