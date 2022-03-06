@@ -7,7 +7,7 @@ from pathlib import Path
 
 class Latency:
     def __init__(self):
-        self.configFiles,cron = ['events.json','peering.json','longtime.json'],[5,15,25,35,45,55]
+        self.configFiles,cron = ['peering.json','longtime.json'],[5,15,25,35,45,55]
         self.long,self.file,self.files = False,"peering.json",{}
         if len(sys.argv) == 2 and sys.argv[1] == "longtime" or datetime.now().minute in cron:
             self.file = "longtime.json"
@@ -85,8 +85,6 @@ class Latency:
                     if entry not in tempFile['longtime.json']: tempFile['longtime.json'][entry] = {"packetloss":0,"jitter":0}
                     if entry not in tempFile['peering.json']: tempFile['peering.json'][entry] = {"packetloss":0,"jitter":0}
 
-                    if node['nic'] not in tempFile['events.json']: tempFile['events.json'][node['nic']] = {"events":{"jitter":[]}} 
-
                     hadLossLong = tempFile['longtime.json'][entry]['packetloss'] > current
                     hadLoss = tempFile['peering.json'][entry]['packetloss'] > current
                     hasLoss = len(row) < pings -1
@@ -112,7 +110,6 @@ class Latency:
                     if hasJitter:
                         extend = 3600 if self.isLongtime() else 900
                         tempFile[self.file][entry]['jitter'] = current + extend #update event
-                        tempFile['events.json'][node['nic']]['events']['jitter'].append(current)
                         print(entry,"High Jitter dectected, adding penalty")
                     elif hadJitter or hadJitterLong:
                         print(entry,"Ongoing Jitter")
