@@ -19,9 +19,9 @@ class Latency:
                     with open(file) as handle:
                         self.files[file] = json.loads(handle.read())
                 except:
-                    self.files[file] = {}
+                    self.files[file] = {"created":int(datetime.now().timestamp())}
             else:
-                self.files[file] = {}
+                self.files[file] = {"created":int(datetime.now().timestamp())}
 
     def isLongtime(self):
         return self.long
