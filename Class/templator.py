@@ -19,8 +19,7 @@ protocol device {
 '''
         localPTP = ""
         for target,data in latency.items():
-            if localPTP != "":
-                localPTP += ","
+            if localPTP != "": localPTP += ","
             localPTP += data['target']+"/32-"
         template += '''
 function avoid_local_ptp() {
