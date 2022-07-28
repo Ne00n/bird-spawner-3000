@@ -78,32 +78,44 @@ class Latency:
                 isClientLink = True  if any(cl in node['nic'] for cl in clients) else False
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if entry not in tempFile['network.json']: tempFile['network.json'][entry] = {"packetloss":0,"jitter":0}
+                    if entry not in tempFile['network.json']: tempFile['network.json'][entry] = {"packetloss":[],"jitter":[]}
 
-                    hadLoss = tempFile['network.json'][entry]['packetloss'] > current
+                    threshold,eventCount = 1,0
+                    for event in list(tempFile['network.json'][entry]['packetloss']):
+                        if event > int(datetime.now().timestamp()): 
+                            eventCount += 1
+                        else:
+                            tempFile['network.json'][entry]['packetloss'].remove(event)
+                    hadLoss = True if eventCount >= threshold else False
                     hasLoss = len(row) < pings -1
 
-                    if hasLoss or hadLoss:
+                    if hadLoss or hasLoss:
                         node['latency'] = node['latency'] + 5000 #+ 50ms / weight
                         loss = loss +1
 
                     if hasLoss:
-                        tempFile[self.file][entry]['packetloss'] = current + 900 #update event
-                        print(entry,"Packetloss detected","got",len(row),f"of {pings -1}, adding penalty")
+                        tempFile['network.json'][entry]['packetloss'].append(int(datetime.now().timestamp()) + 900)
+                        print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
                     elif hadLoss:
                         print(entry,"Ongoing Packetloss")
 
+                    threshold,eventCount = 3,0
+                    for event in list(tempFile['network.json'][entry]['jitter']):
+                        if event > int(datetime.now().timestamp()): 
+                            eventCount += 1
+                        else:
+                            tempFile['network.json'][entry]['jitter'].remove(event)
+                    hadJitter = True if eventCount > threshold else False
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
-                    hadJitter = tempFile['network.json'][entry]['jitter'] > current
 
                     if isClient == False and isClientLink == False:
-                        if hasJitter or hadJitter:
+                        if hadJitter:
                             node['latency'] = node['latency'] + 1000 #+ 10ms /weight
                             jittar = jittar +1
 
                         if hasJitter:
-                            tempFile[self.file][entry]['jitter'] = current + 900 #update event
-                            print(entry,"High Jitter dectected, adding penalty")
+                            tempFile['network.json'][entry]['jitter'].append(int(datetime.now().timestamp()) + 900)
+                            print(entry,"High Jitter dectected")
                         elif hadJitter:
                             print(entry,"Ongoing Jitter")
                         total = total +1
