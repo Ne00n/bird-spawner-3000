@@ -30,6 +30,7 @@ return net ~ [ '''+localPTP+''' ];
 protocol direct {
     ipv4;
     interface "lo";
+    interface "tunnel*";
 }
 
 protocol kernel {

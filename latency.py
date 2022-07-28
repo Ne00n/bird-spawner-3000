@@ -84,7 +84,7 @@ class Latency:
                     hasLoss = len(row) < pings -1
 
                     if hasLoss or hadLoss:
-                        node['latency'] = node['latency'] + 5000 #+ 50ms / weight
+                        node['latency'] = node['latency'] + 900 #+ 50ms / weight
                         loss = loss +1
 
                     if hasLoss:
