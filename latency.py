@@ -7,8 +7,8 @@ from pathlib import Path
 
 class Latency:
     def __init__(self):
-        self.configFiles = ['peering.json']
-        self.file,self.files = "peering.json",{}
+        self.configFiles = ['network.json']
+        self.file,self.files = "network.json",{}
         for file in self.configFiles:
             if Path(file).exists():
                 print("Loading",file)
@@ -78,9 +78,9 @@ class Latency:
                 isClientLink = True  if any(cl in node['nic'] for cl in clients) else False
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if entry not in tempFile['peering.json']: tempFile['peering.json'][entry] = {"packetloss":0,"jitter":0}
+                    if entry not in tempFile['network.json']: tempFile['network.json'][entry] = {"packetloss":0,"jitter":0}
 
-                    hadLoss = tempFile['peering.json'][entry]['packetloss'] > current
+                    hadLoss = tempFile['network.json'][entry]['packetloss'] > current
                     hasLoss = len(row) < pings -1
 
                     if hasLoss or hadLoss:
@@ -94,7 +94,7 @@ class Latency:
                         print(entry,"Ongoing Packetloss")
 
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
-                    hadJitter = tempFile['peering.json'][entry]['jitter'] > current
+                    hadJitter = tempFile['network.json'][entry]['jitter'] > current
 
                     if isClient == False and isClientLink == False:
                         if hasJitter or hadJitter:
