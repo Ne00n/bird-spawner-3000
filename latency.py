@@ -133,6 +133,7 @@ for run in range(3):
     fping = L.cmd("pgrep fping")
     if fping[0] == "": break
     if run == 2: raise Exception('fping is running, exiting.')
+    print("Waiting for fping")
     time.sleep(randint(5, 10))
 for run in range(2):
     #Getting config
