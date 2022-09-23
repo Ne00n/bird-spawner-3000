@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import subprocess, datetime, json, time, sys, re
+import subprocess, json, time, sys, re
 from ipaddress import ip_network
 from datetime import datetime
 from random import randint
@@ -86,6 +86,8 @@ class Latency:
                             eventCount += 1
                         else:
                             tempFile['network.json'][entry]['packetloss'].remove(event)
+                    
+                    expire = 900 if pings == 6 else 3600
                     hadLoss = True if eventCount >= threshold else False
                     hasLoss = len(row) < pings -1
 
@@ -94,12 +96,15 @@ class Latency:
                         loss = loss +1
 
                     if hasLoss:
-                        tempFile['network.json'][entry]['packetloss'].append(int(datetime.now().timestamp()) + 900)
+                        #limit the amount of entries to 15
+                        if len(tempFile['network.json'][entry]['packetloss']) < 15:
+                            tempFile['network.json'][entry]['packetloss'].append(int(datetime.now().timestamp()) + expire)
                         print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
                     elif hadLoss:
                         print(entry,"Ongoing Packetloss")
 
-                    threshold,eventCount = 3,0
+                    if pings > 6: row = row[:5]
+                    threshold,eventCount = 10,0
                     for event in list(tempFile['network.json'][entry]['jitter']):
                         if event > int(datetime.now().timestamp()): 
                             eventCount += 1
@@ -107,7 +112,7 @@ class Latency:
                             tempFile['network.json'][entry]['jitter'].remove(event)
                     hadJitter = True if eventCount > threshold else False
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
-
+                    
                     if isClient == False and isClientLink == False:
                         if hadJitter:
                             node['latency'] = node['latency'] + 1000 #+ 10ms /weight
@@ -128,6 +133,9 @@ L = Latency()
 print("Checking bird/fping status")
 bird = L.cmd("pgrep bird")
 if bird[0] == "": raise Exception('bird2 not running, exiting.')
+#delay the measurement a bit
+now = datetime.now()
+time.sleep(int(str(now.minute)[1]))
 #Check if fping is running
 for run in range(3):
     fping = L.cmd("pgrep fping")
@@ -135,7 +143,13 @@ for run in range(3):
     if run == 2: raise Exception('fping is running, exiting.')
     print("Waiting for fping")
     time.sleep(randint(5, 10))
-for run in range(2):
+#longrun
+cron = [5,15,25,35,45,55]
+if datetime.now().minute in cron:
+    runs,pings = 1,30
+else:
+    runs,pings = 3,6
+for run in range(runs):
     #Getting config
     print("Reading bird config")
     configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
@@ -145,8 +159,7 @@ for run in range(2):
     isClient = "10.0.250" in configs[0]
     #fping
     print("Running fping")
-    time.sleep(randint(0,5))
-    result = L.getLatency(config,6,isClient)
+    result = L.getLatency(config,pings,isClient)
     #update
     local = re.findall("inet (10\.0[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
     configRaw = re.sub(local[0][0]+"; #updated [0-9]+", local[0][0]+"; #updated "+str(int(time.time())), configRaw, 0, re.MULTILINE)
@@ -163,4 +176,4 @@ for run in range(2):
         print("Reloading bird")
         L.cmd('/usr/sbin/service bird reload')
     L.save()
-    if run == 0: time.sleep(30)
+    if pings == 6: time.sleep(15)
