@@ -55,9 +55,8 @@ class Latency:
             if float(entry[0]) > avrg + grace: return True
         return False
 
-    def getLatency(self,config,pings=4,isClient=False):
+    def getLatency(self,config,pings=4):
         fping = ["fping", "-c", str(pings)]
-        clients = ["PI","CLIENT"]
         for row in config:
             fping.append(row['target'])
         result = subprocess.run(fping, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -75,19 +74,17 @@ class Latency:
         total,loss,jittar = 0,0,0
         for node in list(config):
             for entry,row in latency.items():
-                isClientLink = True  if any(cl in node['nic'] for cl in clients) else False
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
                     if entry not in tempFile['network.json']: tempFile['network.json'][entry] = {"packetloss":[],"jitter":[]}
 
-                    threshold,eventCount = 1,0
+                    threshold,eventCount = 3,0
                     for event in list(tempFile['network.json'][entry]['packetloss']):
                         if event > int(datetime.now().timestamp()): 
                             eventCount += 1
                         else:
                             tempFile['network.json'][entry]['packetloss'].remove(event)
                     
-                    expire = 900 if pings == 6 else 3600
                     hadLoss = True if eventCount >= threshold else False
                     hasLoss = len(row) < pings -1
 
@@ -96,15 +93,12 @@ class Latency:
                         loss = loss +1
 
                     if hasLoss:
-                        #limit the amount of entries to 15
-                        if len(tempFile['network.json'][entry]['packetloss']) < 15:
-                            tempFile['network.json'][entry]['packetloss'].append(int(datetime.now().timestamp()) + expire)
+                        tempFile['network.json'][entry]['packetloss'].append(int(datetime.now().timestamp()) + 300)
                         print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
                     elif hadLoss:
                         print(entry,"Ongoing Packetloss")
 
-                    if pings > 6: row = row[:5]
-                    threshold,eventCount = 10,0
+                    threshold,eventCount = 5,0
                     for event in list(tempFile['network.json'][entry]['jitter']):
                         if event > int(datetime.now().timestamp()): 
                             eventCount += 1
@@ -113,17 +107,16 @@ class Latency:
                     hadJitter = True if eventCount > threshold else False
                     hasJitter = self.hasJitter(row,self.getAvrg(row,True))
                     
-                    if isClient == False and isClientLink == False:
-                        if hadJitter:
-                            node['latency'] = node['latency'] + 1000 #+ 10ms /weight
-                            jittar = jittar +1
+                    if hadJitter:
+                        node['latency'] = node['latency'] + 1000 #+ 10ms /weight
+                        jittar = jittar +1
 
-                        if hasJitter:
-                            tempFile['network.json'][entry]['jitter'].append(int(datetime.now().timestamp()) + 900)
-                            print(entry,"High Jitter dectected")
-                        elif hadJitter:
-                            print(entry,"Ongoing Jitter")
-                        total = total +1
+                    if hasJitter:
+                        tempFile['network.json'][entry]['jitter'].append(int(datetime.now().timestamp()) + 300)
+                        print(entry,"High Jitter dectected")
+                    elif hadJitter:
+                        print(entry,"Ongoing Jitter")
+                    total = total +1
 
         print (f"Total {total}, Jitter {jittar}, Packetloss {loss}")
         return config
@@ -133,9 +126,6 @@ L = Latency()
 print("Checking bird/fping status")
 bird = L.cmd("pgrep bird")
 if bird[0] == "": raise Exception('bird2 not running, exiting.')
-#delay the measurement a bit
-now = datetime.now()
-time.sleep(int(str(now.minute)[1]))
 #Check if fping is running
 for run in range(3):
     fping = L.cmd("pgrep fping")
@@ -143,23 +133,16 @@ for run in range(3):
     if run == 2: raise Exception('fping is running, exiting.')
     print("Waiting for fping")
     time.sleep(randint(5, 10))
-#longrun
-cron = [5,15,25,35,45,55]
-if datetime.now().minute in cron:
-    runs,pings = 1,30
-else:
-    runs,pings = 3,6
-for run in range(runs):
+for run in range(3):
     #Getting config
     print("Reading bird config")
     configRaw = L.cmd("cat /etc/bird/bird.conf")[0].rstrip()
     #Parsing
     config = L.parse(configRaw)
     configs = L.cmd('ip addr show')
-    isClient = "10.0.250" in configs[0]
     #fping
     print("Running fping")
-    result = L.getLatency(config,pings,isClient)
+    result = L.getLatency(config,11)
     #update
     local = re.findall("inet (10\.0[0-9.]+\.1)\/(32|30) scope global lo",configs[0], re.MULTILINE | re.DOTALL)
     configRaw = re.sub(local[0][0]+"; #updated [0-9]+", local[0][0]+"; #updated "+str(int(time.time())), configRaw, 0, re.MULTILINE)
@@ -176,4 +159,4 @@ for run in range(runs):
         print("Reloading bird")
         L.cmd('/usr/sbin/service bird reload')
     L.save()
-    if pings == 6: time.sleep(15)
+    time.sleep(10)
