@@ -88,6 +88,8 @@ class Latency:
                     hadLoss = True if eventCount >= threshold else False
                     hasLoss = len(row) < pings -1
 
+                    #failsafe
+                    if node['latency'] > 65000: node['latency'] = 65000
                     if hadLoss or hasLoss:
                         node['latency'] = node['latency'] + 5000 #+ 50ms / weight
                         loss = loss +1
