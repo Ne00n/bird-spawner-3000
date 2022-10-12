@@ -16,9 +16,9 @@ class Latency:
                     with open(file) as handle:
                         self.files[file] = json.loads(handle.read())
                 except:
-                    self.files[file] = {"created":int(datetime.now().timestamp())}
+                    self.files[file] = {"created":int(datetime.now().timestamp()),"updated":0}
             else:
-                self.files[file] = {"created":int(datetime.now().timestamp())}
+                self.files[file] = {"created":int(datetime.now().timestamp()),"updated":0}
 
     def save(self):
         for file in self.configFiles:
@@ -77,7 +77,7 @@ class Latency:
                     node['latency'] = self.getAvrg(row)
                     if entry not in self.files['network.json']: self.files['network.json'][entry] = {"packetloss":[],"jitter":[]}
 
-                    threshold,eventCount = 3,0
+                    threshold,eventCount = 1,0
                     for event in list(self.files['network.json'][entry]['packetloss']):
                         if event > int(datetime.now().timestamp()): 
                             eventCount += 1
@@ -120,6 +120,7 @@ class Latency:
                     total += 1
 
         print (f"Total {total}, Jitter {jittar}, Packetloss {loss}")
+        self.files['network.json']['updated'] = int(datetime.now().timestamp())
         return config
 
 L = Latency()
@@ -127,13 +128,6 @@ L = Latency()
 print("Checking bird/fping status")
 bird = L.cmd("pgrep bird")
 if bird[0] == "": raise Exception('bird2 not running, exiting.')
-#Check if fping is running
-for run in range(3):
-    fping = L.cmd("pgrep fping")
-    if fping[0] == "": break
-    if run == 2: raise Exception('fping is running, exiting.')
-    print("Waiting for fping")
-    time.sleep(randint(5, 10))
 for run in range(3):
     #Getting config
     print("Reading bird config")
@@ -160,4 +154,4 @@ for run in range(3):
         print("Reloading bird")
         L.cmd('/usr/sbin/service bird reload')
     L.save()
-    time.sleep(10)
+    if run != 2: time.sleep(9)
