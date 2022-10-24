@@ -92,7 +92,7 @@ class Latency:
                     hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
 
                     if hadLoss or hasLoss:
-                        node['latency'] = node['latency'] + 500 * eventScore #+ 50ms / weight
+                        node['latency'] = node['latency'] + int(500 * eventScore) #+ 50ms / weight
                         loss = loss +1
 
                     if hasLoss:
@@ -116,7 +116,7 @@ class Latency:
                     hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
                     
                     if hadJitter:
-                        node['latency'] = node['latency'] + 100 * eventScore #+ 10ms /weight
+                        node['latency'] = node['latency'] + int(100 * eventScore) #+ 10ms /weight
                         jittar += 1
 
                     if hasJitter:
