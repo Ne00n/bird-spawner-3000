@@ -47,7 +47,7 @@ class Latency:
         for entry in row:
             result += float(entry[0])
         if weight: return int(float(result / len(row)))
-        else: return int(float(result / len(row)) * 100)
+        else: return int(float(result / len(row)) * 10)
 
     def hasJitter(self,row,avrg):
         grace = 20
@@ -91,10 +91,8 @@ class Latency:
                     hadLoss = True if eventCount >= threshold else False
                     hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
 
-                    #failsafe
-                    if node['latency'] > 65000: node['latency'] = 65000
                     if hadLoss or hasLoss:
-                        node['latency'] = node['latency'] + 5000 * eventScore #+ 50ms / weight
+                        node['latency'] = node['latency'] + 500 * eventScore #+ 50ms / weight
                         loss = loss +1
 
                     if hasLoss:
@@ -118,7 +116,7 @@ class Latency:
                     hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
                     
                     if hadJitter:
-                        node['latency'] = node['latency'] + 1000 * eventScore #+ 10ms /weight
+                        node['latency'] = node['latency'] + 100 * eventScore #+ 10ms /weight
                         jittar += 1
 
                     if hasJitter:
