@@ -36,7 +36,7 @@ class Latency:
         return o == t
 
     def parse(self,configRaw):
-        parsed = re.findall('interface "([a-zA-Z0-9]{3,}?)".*?([0-9.]+).*?cost ([0-9]+)',configRaw, re.DOTALL)
+        parsed = re.findall('interface "([a-zA-Z0-9]{3,}?)".{50,200}?([0-9.]+).{50,200}?cost ([0-9.]+);',configRaw, re.DOTALL)
         data = []
         for nic,target,weight in parsed:
             data.append({'nic':nic,'target':target,'weight':weight})
