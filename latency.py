@@ -52,8 +52,8 @@ class Latency:
     def hasJitter(self,row,avrg):
         grace = 20
         for entry in row:
-            if float(entry[0]) > avrg + grace: return True
-        return False
+            if float(entry[0]) > avrg + grace: return True,float(entry[0]) - (avrg + grace)
+        return False,0
 
     def getLatency(self,config,pings=4):
         fping = ["fping", "-c", str(pings)]
@@ -75,17 +75,18 @@ class Latency:
             for entry,row in latency.items():
                 if entry == node['target']:
                     node['latency'] = self.getAvrg(row)
-                    if entry not in self.files['network.json']: self.files['network.json'][entry] = {"packetloss":[],"jitter":[]}
+                    if entry not in self.files['network.json']: self.files['network.json'][entry] = {"packetloss":{},"jitter":{}}
 
                     threshold,eventCount = 1,0
-                    for event in list(self.files['network.json'][entry]['packetloss']):
-                        if event > int(datetime.now().timestamp()): 
+                    for event,lost in list(self.files['network.json'][entry]['packetloss'].items()):
+                        if int(event) > int(datetime.now().timestamp()): 
                             eventCount += 1
-                        else:
-                            self.files['network.json'][entry]['packetloss'].remove(event)
+                        #delete events after 30 minutes
+                        elif (int(datetime.now().timestamp()) - 1800) > int(event):
+                            del self.files['network.json'][entry]['packetloss'][event]
                     
                     hadLoss = True if eventCount >= threshold else False
-                    hasLoss = len(row) < pings -1
+                    hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
 
                     #failsafe
                     if node['latency'] > 65000: node['latency'] = 65000
@@ -94,26 +95,27 @@ class Latency:
                         loss = loss +1
 
                     if hasLoss:
-                        self.files['network.json'][entry]['packetloss'].append(int(datetime.now().timestamp()) + 300)
+                        self.files['network.json'][entry]['packetloss'][int(datetime.now().timestamp()) + 300] = peakLoss
                         print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
                     elif hadLoss:
                         print(entry,"Ongoing Packetloss")
 
                     threshold,eventCount = 5,0
-                    for event in list(self.files['network.json'][entry]['jitter']):
-                        if event > int(datetime.now().timestamp()): 
+                    for event,peak in list(self.files['network.json'][entry]['jitter'].items()):
+                        if int(event) > int(datetime.now().timestamp()): 
                             eventCount += 1
-                        else:
-                            self.files['network.json'][entry]['jitter'].remove(event)
+                        #delete events after 30 minutes
+                        elif (int(datetime.now().timestamp()) - 1800) > int(event):
+                            del self.files['network.json'][entry]['jitter'][event]
                     hadJitter = True if eventCount > threshold else False
-                    hasJitter = self.hasJitter(row,self.getAvrg(row,True))
+                    hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
                     
                     if hadJitter:
                         node['latency'] = node['latency'] + 1000 #+ 10ms /weight
                         jittar += 1
 
                     if hasJitter:
-                        self.files['network.json'][entry]['jitter'].append(int(datetime.now().timestamp()) + 300)
+                        self.files['network.json'][entry]['jitter'][int(datetime.now().timestamp()) + 300] = peakJitter
                         print(entry,"High Jitter dectected")
                     elif hadJitter:
                         print(entry,"Ongoing Jitter")
