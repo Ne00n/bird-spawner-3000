@@ -77,21 +77,24 @@ class Latency:
                     node['latency'] = self.getAvrg(row)
                     if entry not in self.files['network.json']: self.files['network.json'][entry] = {"packetloss":{},"jitter":{}}
 
-                    threshold,eventCount = 1,0
+                    threshold,eventCount,eventScore = 1,0,0
                     for event,lost in list(self.files['network.json'][entry]['packetloss'].items()):
                         if int(event) > int(datetime.now().timestamp()): 
                             eventCount += 1
+                            eventScore += lost
                         #delete events after 30 minutes
                         elif (int(datetime.now().timestamp()) - 1800) > int(event):
                             del self.files['network.json'][entry]['packetloss'][event]
                     
+                    if eventCount > 0:
+                        eventScore = eventScore / eventCount
                     hadLoss = True if eventCount >= threshold else False
                     hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
 
                     #failsafe
                     if node['latency'] > 65000: node['latency'] = 65000
                     if hadLoss or hasLoss:
-                        node['latency'] = node['latency'] + 5000 #+ 50ms / weight
+                        node['latency'] = node['latency'] + 5000 * eventScore #+ 50ms / weight
                         loss = loss +1
 
                     if hasLoss:
@@ -100,18 +103,22 @@ class Latency:
                     elif hadLoss:
                         print(entry,"Ongoing Packetloss")
 
-                    threshold,eventCount = 5,0
+                    threshold,eventCount,eventScore = 5,0,0
                     for event,peak in list(self.files['network.json'][entry]['jitter'].items()):
                         if int(event) > int(datetime.now().timestamp()): 
                             eventCount += 1
+                            eventScore += peak
                         #delete events after 30 minutes
                         elif (int(datetime.now().timestamp()) - 1800) > int(event):
                             del self.files['network.json'][entry]['jitter'][event]
+                    
+                    if eventCount > 0:
+                        eventScore = eventScore / eventCount
                     hadJitter = True if eventCount > threshold else False
                     hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
                     
                     if hadJitter:
-                        node['latency'] = node['latency'] + 1000 #+ 10ms /weight
+                        node['latency'] = node['latency'] + 1000 * eventScore #+ 10ms /weight
                         jittar += 1
 
                     if hasJitter:
