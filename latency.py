@@ -92,7 +92,7 @@ class Latency:
                     hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
 
                     if hadLoss or hasLoss:
-                        node['latency'] = node['latency'] + int(500 * eventScore) #+ 50ms / weight
+                        node['latency'] = node['latency'] + (500 * eventScore) #+ 50ms / weight
                         loss = loss +1
 
                     if hasLoss:
@@ -116,7 +116,7 @@ class Latency:
                     hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
                     
                     if hadJitter:
-                        node['latency'] = node['latency'] + int(100 * eventScore) #+ 10ms /weight
+                        node['latency'] = node['latency'] + (100 * eventScore) #+ 10ms /weight
                         jittar += 1
 
                     if hasJitter:
@@ -125,6 +125,8 @@ class Latency:
                     elif hadJitter:
                         print(entry,"Ongoing Jitter")
                     total += 1
+                    #make sure its always int
+                    node['latency'] = int(node['latency'])
 
         print (f"Total {total}, Jitter {jittar}, Packetloss {loss}")
         self.files['network.json']['updated'] = int(datetime.now().timestamp())
