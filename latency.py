@@ -77,6 +77,12 @@ class Latency:
                     node['latency'] = self.getAvrg(row)
                     if entry not in self.files['network.json']: self.files['network.json'][entry] = {"packetloss":{},"jitter":{}}
 
+                    #Packetloss
+                    hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
+                    if hasLoss:
+                        self.files['network.json'][entry]['packetloss'][int(datetime.now().timestamp()) + 300] = peakLoss
+                        print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
+
                     threshold,eventCount,eventScore = 1,0,0
                     for event,lost in list(self.files['network.json'][entry]['packetloss'].items()):
                         if int(event) > int(datetime.now().timestamp()): 
@@ -86,19 +92,18 @@ class Latency:
                         elif (int(datetime.now().timestamp()) - 1800) > int(event):
                             del self.files['network.json'][entry]['packetloss'][event]
                     
-                    if eventCount > 0:
-                        eventScore = eventScore / eventCount
+                    if eventCount > 0: eventScore = eventScore / eventCount
                     hadLoss = True if eventCount >= threshold else False
-                    hasLoss,peakLoss = len(row) < pings -1,(pings -1) - len(row)
-
-                    if hadLoss or hasLoss:
+                    if hadLoss:
                         node['latency'] = node['latency'] + (500 * eventScore) #+ 50ms / weight
                         print(entry,"Ongoing Packetloss")
                         loss = loss +1
 
-                    if hasLoss:
-                        self.files['network.json'][entry]['packetloss'][int(datetime.now().timestamp()) + 300] = peakLoss
-                        print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
+                    #Jitter
+                    hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
+                    if hasJitter:
+                        self.files['network.json'][entry]['jitter'][int(datetime.now().timestamp()) + 300] = peakJitter
+                        print(entry,"High Jitter dectected")
 
                     threshold,eventCount,eventScore = 5,0,0
                     for event,peak in list(self.files['network.json'][entry]['jitter'].items()):
@@ -109,19 +114,13 @@ class Latency:
                         elif (int(datetime.now().timestamp()) - 1800) > int(event):
                             del self.files['network.json'][entry]['jitter'][event]
                     
-                    if eventCount > 0:
-                        eventScore = eventScore / eventCount
+                    if eventCount > 0: eventScore = eventScore / eventCount
                     hadJitter = True if eventCount > threshold else False
-                    hasJitter,peakJitter = self.hasJitter(row,self.getAvrg(row,True))
-                    
                     if hadJitter:
                         node['latency'] = node['latency'] + (100 * eventScore) #+ 10ms /weight
                         print(entry,"Ongoing Jitter")
                         jittar += 1
 
-                    if hasJitter:
-                        self.files['network.json'][entry]['jitter'][int(datetime.now().timestamp()) + 300] = peakJitter
-                        print(entry,"High Jitter dectected")
                     total += 1
                     #make sure its always int
                     node['latency'] = int(node['latency'])
