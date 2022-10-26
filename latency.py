@@ -93,13 +93,12 @@ class Latency:
 
                     if hadLoss or hasLoss:
                         node['latency'] = node['latency'] + (500 * eventScore) #+ 50ms / weight
+                        print(entry,"Ongoing Packetloss")
                         loss = loss +1
 
                     if hasLoss:
                         self.files['network.json'][entry]['packetloss'][int(datetime.now().timestamp()) + 300] = peakLoss
                         print(entry,"Packetloss detected","got",len(row),f"of {pings -1}")
-                    elif hadLoss:
-                        print(entry,"Ongoing Packetloss")
 
                     threshold,eventCount,eventScore = 5,0,0
                     for event,peak in list(self.files['network.json'][entry]['jitter'].items()):
@@ -117,13 +116,12 @@ class Latency:
                     
                     if hadJitter:
                         node['latency'] = node['latency'] + (100 * eventScore) #+ 10ms /weight
+                        print(entry,"Ongoing Jitter")
                         jittar += 1
 
                     if hasJitter:
                         self.files['network.json'][entry]['jitter'][int(datetime.now().timestamp()) + 300] = peakJitter
                         print(entry,"High Jitter dectected")
-                    elif hadJitter:
-                        print(entry,"Ongoing Jitter")
                     total += 1
                     #make sure its always int
                     node['latency'] = int(node['latency'])
