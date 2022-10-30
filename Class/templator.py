@@ -29,6 +29,7 @@ return net ~ [ '''+localPTP+''' ];
 
 protocol direct {
     ipv4;
+    ipv6;
     interface "lo";
     interface "server";
     interface "tunnel*";
@@ -73,5 +74,26 @@ ipv4 {
             '''
         template += """
         };
-}"""
+}
+
+protocol kernel {
+    ipv6 {
+        export all;
+    };
+}
+
+protocol ospf v3 {
+    ipv6 {
+        export all;
+    };
+    area 0 {
+        """
+        for target,data in latency.items():
+            template += '''
+                interface "'''+target+'''";
+            '''
+        template += """
+    };
+}
+"""
         return template
