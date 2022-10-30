@@ -58,9 +58,9 @@ filter export_OSPF {
 
 protocol ospf {
 ipv4 {
-		import all;
-        export filter export_OSPF;
-        };
+    import all;
+    export filter export_OSPF;
+};
 	area 0 { '''
         for target,data in latency.items():
             template += '''
@@ -90,7 +90,10 @@ protocol ospf v3 {
         """
         for target,data in latency.items():
             template += '''
-                interface "'''+target+'''";
+                interface "'''+target+'''" {
+                    type ptmp;
+                    cost '''+str(data['latency'])+'''; #'''+data['target']+'''
+                };
             '''
         template += """
     };
