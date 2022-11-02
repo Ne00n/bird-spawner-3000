@@ -29,6 +29,7 @@ return net ~ [ '''+localPTP+''' ];
 
 protocol direct {
     ipv4;
+    ipv6;
     interface "lo";
     interface "server";
     interface "tunnel*";
@@ -57,9 +58,9 @@ filter export_OSPF {
 
 protocol ospf {
 ipv4 {
-		import all;
-        export filter export_OSPF;
-        };
+    import all;
+    export filter export_OSPF;
+};
 	area 0 { '''
         for target,data in latency.items():
             template += '''
@@ -73,5 +74,29 @@ ipv4 {
             '''
         template += """
         };
-}"""
+}
+
+protocol kernel {
+    ipv6 {
+        export all;
+    };
+}
+
+protocol ospf v3 {
+    ipv6 {
+        export all;
+    };
+    area 0 {
+        """
+        for target,data in latency.items():
+            template += '''
+                interface "'''+target+'''" {
+                    type ptmp;
+                    cost '''+str(data['latency'])+'''; #'''+data['target']+'''
+                };
+            '''
+        template += """
+    };
+}
+"""
         return template
