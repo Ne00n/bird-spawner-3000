@@ -82,9 +82,15 @@ protocol kernel {
     };
 }
 
+filter export_OSPFv3 {
+    if (net.len > 64) then reject; #Source based Routing for Clients
+    if source ~ [ RTS_DEVICE, RTS_STATIC ] then accept;
+    reject;
+}
+
 protocol ospf v3 {
     ipv6 {
-        export all;
+        export filter export_OSPFv3;
     };
     area 0 {
         """
