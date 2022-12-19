@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import subprocess, json, time, sys, re
+import subprocess, requests, json, time, sys, re
 from ipaddress import ip_network
 from datetime import datetime
 from random import randint
@@ -25,6 +25,10 @@ class Latency:
             print(f"Saving {file}")
             with open(file, 'w') as f:
                 json.dump(self.files[file], f, indent=4)
+
+    def upload(self,result):
+        payload = json.dumps(result)timeout
+        requests.post('http://10.0.251.12/upload.php', json=payload, timeout=2)
 
     def cmd(self,cmd):
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -160,4 +164,5 @@ for run in range(3):
         print("Reloading bird")
         L.cmd('/usr/sbin/service bird reload')
     L.save()
+    #L.upload(result)
     if run != 2: time.sleep(9)
