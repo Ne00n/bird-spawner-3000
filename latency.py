@@ -26,9 +26,11 @@ class Latency:
             with open(file, 'w') as f:
                 json.dump(self.files[file], f, indent=4)
 
-    def upload(self,result):
-        payload = json.dumps(result)timeout
-        requests.post('http://10.0.251.12/upload.php', json=payload, timeout=2)
+    def upload(self,payload):
+        print("Uploading data")
+        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+        response = requests.post('http://10.0.12.1/upload', json=payload,  headers=headers, timeout=2)
+        print(f"Got {response.status_code}")
 
     def cmd(self,cmd):
         p = subprocess.run(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -40,9 +42,9 @@ class Latency:
         return o == t
 
     def parse(self,configRaw):
-        parsed = re.findall('interface "([a-zA-Z0-9]{3,}?)".{50,200}?([0-9.]+).{50,200}?cost ([0-9.]+);',configRaw, re.DOTALL)
+        parsed = re.findall('interface "([a-zA-Z0-9]{3,}?)".{50,170}?cost ([0-9.]+);\s#([0-9.]+)',configRaw, re.DOTALL)
         data = []
-        for nic,target,weight in parsed:
+        for nic,weight,target in parsed:
             data.append({'nic':nic,'target':target,'weight':weight})
         return data
 
@@ -164,5 +166,5 @@ for run in range(3):
         print("Reloading bird")
         L.cmd('/usr/sbin/service bird reload')
     L.save()
-    #L.upload(result)
+    L.upload(result)
     if run != 2: time.sleep(9)
