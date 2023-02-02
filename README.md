@@ -1,5 +1,8 @@
 # bird-spawner-3000
 
+**Not longer updated**<br>
+Use wg-mesh instead.<br>
+
 Invasion of the Birds Expansion for pipe-builder-3000: https://github.com/Ne00n/pipe-builder-3000/ </br>
 Configures bird2 with OSPF on all nodes, for the lowest latency between the servers.
 
